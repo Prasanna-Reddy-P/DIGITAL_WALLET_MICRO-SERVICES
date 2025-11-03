@@ -3,7 +3,7 @@
 # =====================
 
 # Gradle
-.gradle
+.gradle/
 build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
@@ -24,7 +24,7 @@ buildNumber.properties
 # =====================
 
 # IntelliJ IDEA
-.idea
+.idea/
 *.iws
 *.iml
 *.ipr
@@ -32,24 +32,18 @@ out/
 !**/src/main/**/out/
 !**/src/test/**/out/
 
-# Spring Tool Suite (STS)
-.apt_generated
+# Eclipse / STS
+.apt_generated/
 .classpath
 .factorypath
 .project
-.settings
+.settings/
 .springBeans
 .sts4-cache
+.metadata/
 bin/
 !**/src/main/**/bin/
 !**/src/test/**/bin/
-
-# Eclipse
-.metadata/
-*.classpath
-*.project
-*.settings/
-bin/
 
 # NetBeans
 /nbproject/private/
@@ -85,17 +79,26 @@ application.yml
 *.jks
 
 # =====================
-# Only track src and SQL_DataBase folder
+# Project-Specific Rules
 # =====================
-# Ignore everything else in root
+
+# Ignore everything in the root
 /*
-# Keep src folder tracked
+
+# Keep microservice modules
+!/user-service-micro
+!/wallet-service-micro
+
+# Keep src folder if it exists directly under root (optional)
 !/src
-# Keep SQL_DataBase folder tracked
+
+# Keep SQL folder and SQL files
 !/SQL_DataBase
 !/SQL_DataBase/*.sql
-# Keep README and PDFs
+
+# Keep documentation
 !README.md
 !**/*.pdf
-# Keep .gitignore tracked
+
+# Keep gitignore itself
 !.gitignore
