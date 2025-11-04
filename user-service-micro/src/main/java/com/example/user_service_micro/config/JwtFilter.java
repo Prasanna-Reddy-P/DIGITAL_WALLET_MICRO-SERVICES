@@ -20,12 +20,24 @@ import java.util.List;
 
 @Component
 public class JwtFilter extends OncePerRequestFilter {
+/*
+JwtFilter runs before every secured request, this class runs once per HTTP request and checks :
+    Does this request have a valid JWT token? If yes, authenticate the user.
 
+    @Component → Makes Spring automatically detect and register this filter as a bean.
+
+    OncePerRequestFilter → Ensures it runs exactly once per request
+ */
     @Autowired
     private JwtUtil jwtUtil;
 
     @Autowired
     private UserRepository userRepository;
+
+    /*
+    JwtUtil helps validate and extract data from the token.
+    UserRepository fetches the user from DB (to set authorities/roles).
+     */
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -42,6 +54,16 @@ public class JwtFilter extends OncePerRequestFilter {
         }
 
         // ✅ Extract token
+        /*
+        It fetches the Authorization header from the HTTP request.
+
+        For example, if the request contains:
+        Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+        then authHeader will contain that entire string:
+        "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+         */
         String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -68,3 +90,12 @@ public class JwtFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 }
+
+/*
+@Component vs @Service
+
+@Component : Makes spring automatically detect and register this class as a spring managed bean.
+                                            vs
+@Service : Also marks a class as a Spring-managed bean, but with semantic meaning — it represents
+the class as a service layer component (business logic)
+ */

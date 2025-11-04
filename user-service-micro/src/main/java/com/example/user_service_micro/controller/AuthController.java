@@ -111,7 +111,7 @@ public class AuthController {
 
         User user = userRepository.findByEmail(email).orElse(null);
         if (user == null || !passwordEncoder.matches(password, user.getPassword())) {
-            return ResponseEntity.status(401).body("Invalid credentials");
+            return ResponseEntity.status(400).body("Invalid credentials, wrong email or password entered");
         }
 
         // Generate JWT

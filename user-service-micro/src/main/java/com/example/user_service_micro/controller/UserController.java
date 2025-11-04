@@ -44,7 +44,7 @@ public class UserController {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
         UserDTO dto = new UserDTO();
-        dto.setId(user.getId());                // 🔥 This must be included
+        dto.setId(user.getId());
         dto.setName(user.getName());
         dto.setEmail(user.getEmail());
         dto.setRole(user.getRole());

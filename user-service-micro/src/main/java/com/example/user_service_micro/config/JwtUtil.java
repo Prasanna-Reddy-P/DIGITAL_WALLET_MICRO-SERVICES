@@ -49,3 +49,24 @@ public class JwtUtil {
         return claims.getSubject();
     }
 }
+
+/*
+Keys.hmacShaKeyFor(...) is a utility method provided by the JJWT (Java JWT) library for creating SecretKey
+instances specifically for use with HMAC-SHA algorithms when signing and verifying JSON Web Tokens (JWTs).
+
+Purpose:
+This method simplifies the process of generating a SecretKey suitable for HMAC-based signing algorithms
+(like HS256, HS384, HS512) from a raw byte array representing the secret key material.
+It ensures that the generated SecretKey is correctly formatted and compatible with the cryptographic operations required for JWTs.
+
+How it works:
+Input: It takes a byte[] array as its argument. This byte array represents the secret key material.
+This secret should be a secure, randomly generated sequence of bytes,
+and its length should meet the minimum requirements for the chosen HMAC-SHA algorithm (e.g., at least 256 bits for HS256).
+
+Key Generation: It uses the provided byte array to construct a SecretKey object.
+This SecretKey is specifically designed for use with HMAC-SHA algorithms.
+
+Output: It returns a SecretKey instance, which can then be used with the signWith() method of JwtBuilder to sign a JWT
+or with the setSigningKey() method of JwtParserBuilder to verify a JWT.
+ */
