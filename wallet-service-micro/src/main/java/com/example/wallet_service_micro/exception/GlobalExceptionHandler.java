@@ -1,6 +1,6 @@
 package com.example.wallet_service_micro.exception;
 
-import com.example.wallet_service_micro.dto.ErrorResponse;
+import com.example.wallet_service_micro.dto.risk.ErrorResponse;
 import jakarta.persistence.OptimisticLockException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
