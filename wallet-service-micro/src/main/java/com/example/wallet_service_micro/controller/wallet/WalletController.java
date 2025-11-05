@@ -11,6 +11,7 @@ import com.example.wallet_service_micro.dto.wallet.WalletBalanceResponse;
 import com.example.wallet_service_micro.model.wallet.Wallet;
 import com.example.wallet_service_micro.service.wallet.WalletService;
 import com.example.wallet_service_micro.service.factory.WalletFactory;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -76,7 +77,7 @@ public class WalletController {
     @PostMapping("/load")
     public ResponseEntity<LoadMoneyResponse> loadMoney(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
-            @RequestBody LoadMoneyRequest request) {
+            @Valid @RequestBody LoadMoneyRequest request) {
 
         UserDTO user = userClient.getUserFromToken(authHeader);
         String txnId = UUID.randomUUID().toString();
@@ -95,7 +96,7 @@ public class WalletController {
     @PostMapping("/transfer")
     public ResponseEntity<TransferResponse> transfer(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
-            @RequestBody TransferRequest request) {
+            @Valid @RequestBody TransferRequest request) {
 
         // ✅ Get sender user info from the token using UserClient
         UserDTO sender = userClient.getUserFromToken(authHeader);

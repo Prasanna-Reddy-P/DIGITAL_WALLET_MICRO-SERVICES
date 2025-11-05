@@ -19,6 +19,9 @@ public class SecurityConfig {
     @Autowired
     private JwtFilter jwtFilter;
 
+    @Autowired
+    private CustomAccessDeniedHandler accessDeniedHandler;
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -27,6 +30,9 @@ public class SecurityConfig {
                         .requestMatchers("/", "/api/wallet/public/**").permitAll()
                         .requestMatchers("/api/wallet/admin/**").hasRole("ADMIN") // ✅ changed
                         .anyRequest().authenticated()
+                )
+                .exceptionHandling(ex -> ex
+                        .accessDeniedHandler(accessDeniedHandler)
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 /*

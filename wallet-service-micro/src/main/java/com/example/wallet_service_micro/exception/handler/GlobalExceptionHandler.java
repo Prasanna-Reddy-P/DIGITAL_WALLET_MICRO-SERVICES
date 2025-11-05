@@ -1,13 +1,16 @@
 package com.example.wallet_service_micro.exception.handler;
 
 import com.example.wallet_service_micro.dto.risk.ErrorResponse;
+import com.example.wallet_service_micro.exception.RemoteUserServiceException;
 import com.example.wallet_service_micro.exception.auth.ForbiddenException;
 import com.example.wallet_service_micro.exception.auth.UnauthorizedException;
 import com.example.wallet_service_micro.exception.user.UserNotFoundException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.OptimisticLockException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -46,6 +49,24 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleUserNotFound(UserNotFoundException ex) {
         return buildError(HttpStatus.NOT_FOUND, "User not found", ex.getMessage());
     }
+
+    @ExceptionHandler(RemoteUserServiceException.class)
+    public ResponseEntity<Object> handleRemoteUserServiceException(RemoteUserServiceException ex) {
+        try {
+            return ResponseEntity
+                    .status(HttpStatus.BAD_GATEWAY)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(new ObjectMapper().readValue(ex.getMessage(), Object.class)); // Parse JSON string back
+        } catch (Exception e) {
+            // fallback if the message isn't JSON
+            return ResponseEntity
+                    .status(HttpStatus.BAD_GATEWAY)
+                    .body(Map.of("error", ex.getMessage()));
+        }
+    }
+
+
+
 
     // ✅ Unauthorized
     @ExceptionHandler(UnauthorizedException.class)

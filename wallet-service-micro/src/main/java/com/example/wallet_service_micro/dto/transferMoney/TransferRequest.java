@@ -1,7 +1,13 @@
 package com.example.wallet_service_micro.dto.transferMoney;
 
+import jakarta.validation.constraints.NotNull;
+
 public class TransferRequest {
+
+    @NotNull(message = "ReceiverId is must")
     private Long receiverId;
+
+    @NotNull(message = "Amount is must")
     private Double amount;
 
     public TransferRequest() {}
