@@ -8,6 +8,5 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface TransactionMapper {
 
-    @Mapping(source = "userId", target = "userEmail") // temporarily map userId if userEmail isn't available
     TransactionDTO toDTO(Transaction transaction);
 }

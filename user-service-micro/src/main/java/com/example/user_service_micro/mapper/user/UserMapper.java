@@ -8,10 +8,11 @@ import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface UserMapper {
+    @Mapping(source = "user.id", target = "id")
     @Mapping(source = "user.email", target = "email")
     @Mapping(source = "user.name", target = "name")
     @Mapping(source = "user.role", target = "role")
-    UserInfoResponse toDTO(User user);
+    UserDTO toDTO(User user);
 
     // Used in /api/users endpoints
     UserDTO toUsersDTO(User user);

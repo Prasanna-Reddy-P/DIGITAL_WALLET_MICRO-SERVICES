@@ -65,6 +65,10 @@ JwtFilter runs before every secured request, this class runs once per HTTP reque
 
          */
         String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+        /*
+        is used in a server-side application, likely within a Java-based web framework like Spring,
+        to retrieve the value of the "Authorization" HTTP header from an incoming client request.
+         */
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
@@ -74,7 +78,7 @@ JwtFilter runs before every secured request, this class runs once per HTTP reque
 
         // ✅ Validate token
         if (!jwtUtil.validateToken(token)) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // 401 UnAuthorized
             return;
         }
 
@@ -82,6 +86,7 @@ JwtFilter runs before every secured request, this class runs once per HTTP reque
         User user = userRepository.findByEmail(jwtUtil.getEmailFromToken(token)).orElse(null);
         if (user != null) {
             List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(user.getRole()));
+            System.out.println("-=-=-=-=-=-=-=-=-=-=-=-=-=-=--"+authorities);
             UsernamePasswordAuthenticationToken auth =
                     new UsernamePasswordAuthenticationToken(user, null, authorities);
             SecurityContextHolder.getContext().setAuthentication(auth);

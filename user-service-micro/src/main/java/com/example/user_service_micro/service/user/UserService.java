@@ -1,6 +1,7 @@
 package com.example.user_service_micro.service.user;
 
 import com.example.user_service_micro.config.jwt.JwtUtil;
+import com.example.user_service_micro.dto.user.UserDTO;
 import com.example.user_service_micro.dto.user.UserInfoResponse;
 import com.example.user_service_micro.exception.user.UserNotFoundException;
 import com.example.user_service_micro.mapper.user.UserMapper;
@@ -40,7 +41,7 @@ public class UserService {
         return userRepository.findByEmail(email).orElse(null);
     }
 
-    public List<UserInfoResponse> getAllUsers() {
+    public List<UserDTO> getAllUsers() {
         return userRepository.findAll()
                 .stream()
                 .map(userMapper::toDTO)

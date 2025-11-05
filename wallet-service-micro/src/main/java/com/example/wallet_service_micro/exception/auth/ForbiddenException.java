@@ -1,4 +1,4 @@
-package com.example.wallet_service_micro.exception;
+package com.example.wallet_service_micro.exception.auth;
 
 public class ForbiddenException extends RuntimeException {
     public ForbiddenException(String message) {

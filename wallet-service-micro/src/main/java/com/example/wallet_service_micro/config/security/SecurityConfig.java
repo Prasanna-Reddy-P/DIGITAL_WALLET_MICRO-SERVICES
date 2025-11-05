@@ -29,9 +29,25 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                /*
+                By default, Spring Security creates and stores a user session after login.
+                But in JWT-based APIs, we don’t want that — the token itself carries authentication data.
+                Do not create or use HTTP sessions — every request must include a valid token.
+                This ensures complete statelessness — each request stands alone
+                 */
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                /*
+                Insert my custom jwtFilter before the UsernamePasswordAuthenticationFilter in the filter chain
+
+                So the JWT filter:
+                1) Extracts the token from the Authorization header.
+                2) Validates it.
+                3) If valid, sets the user details in the SecurityContext.
+                4) Then the rest of the filters continue.
+                 */
 
         return http.build();
+        // Converts your config into a working SecurityFilterChain
     }
 
     @Bean
@@ -39,4 +55,6 @@ public class SecurityConfig {
         return authConfig.getAuthenticationManager();
     }
 }
+
+//  Cross-Site Request Forgery protection.
 

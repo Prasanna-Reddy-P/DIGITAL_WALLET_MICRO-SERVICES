@@ -8,7 +8,7 @@ import com.example.wallet_service_micro.dto.transactions.TransactionDTO;
 import com.example.wallet_service_micro.dto.transferMoney.TransferResponse;
 import com.example.wallet_service_micro.dto.user.UserDTO;
 import com.example.wallet_service_micro.dto.wallet.WalletBalanceResponse;
-import com.example.wallet_service_micro.exception.UserNotFoundException;
+import com.example.wallet_service_micro.exception.user.UserNotFoundException;
 import com.example.wallet_service_micro.mapper.transaction.TransactionMapper;
 import com.example.wallet_service_micro.mapper.wallet.WalletMapper;
 import com.example.wallet_service_micro.model.wallet.Wallet;

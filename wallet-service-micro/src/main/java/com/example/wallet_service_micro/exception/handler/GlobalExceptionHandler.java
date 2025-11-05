@@ -1,6 +1,9 @@
-package com.example.wallet_service_micro.exception;
+package com.example.wallet_service_micro.exception.handler;
 
 import com.example.wallet_service_micro.dto.risk.ErrorResponse;
+import com.example.wallet_service_micro.exception.auth.ForbiddenException;
+import com.example.wallet_service_micro.exception.auth.UnauthorizedException;
+import com.example.wallet_service_micro.exception.user.UserNotFoundException;
 import jakarta.persistence.OptimisticLockException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

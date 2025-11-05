@@ -1,5 +1,6 @@
 package com.example.user_service_micro.controller.admin;
 
+import com.example.user_service_micro.dto.user.UserDTO;
 import com.example.user_service_micro.model.user.User;
 import com.example.user_service_micro.dto.user.UserInfoResponse;
 import com.example.user_service_micro.service.user.UserService;
@@ -28,12 +29,12 @@ public class AdminController {
     }
 
     @GetMapping
-    public ResponseEntity<List<UserInfoResponse>> getAllUsers(@RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader) {
+    public ResponseEntity<List<UserDTO>> getAllUsers(@RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader) {
         User admin = userService.getUserFromToken(authHeader);
         if (admin == null) throw new UnauthorizedException("Unauthorized access");
         if (!"ADMIN".equals(admin.getRole())) throw new ForbiddenException("Admins only");
 
-        List<UserInfoResponse> users = userService.getAllUsers();
+        List<UserDTO> users = userService.getAllUsers();
         return ResponseEntity.ok(users);
     }
 

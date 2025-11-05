@@ -7,9 +7,28 @@ import org.springframework.web.servlet.HandlerInterceptor;
 
 @Component
 public class AdminInterceptor implements HandlerInterceptor {
+    /*
+    The class implements HandlerInterceptor, which allows you to run custom logic before (or after) a controller handles a request.
+
+This is commonly used for:
+Authentication
+Logging
+Admin checks
+Request validation
+     */
 
     private static final String ADMIN_SECRET = "SuperSecretAdminKey123"; // match user-service
+    //This is a hardcoded secret key used to verify admin requests.
 
+
+    /*
+    ✅ This method runs before the controller method is called.
+You can:
+Inspect the request (headers, URL, body)
+Decide whether to continue or block the request
+Returning true → request proceeds to controller
+Returning false → request is blocked (controller never runs)
+     */
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
             throws Exception {
@@ -30,3 +49,14 @@ public class AdminInterceptor implements HandlerInterceptor {
 
 }
 
+/*
+If your wallet-service has an admin API like:
+GET /api/wallet/admin/users/1
+
+Then your user-service must call it like:
+GET http://localhost:8086/api/wallet/admin/users/1
+X-ADMIN-SECRET: SuperSecretAdminKey123
+Authorization: Bearer <admin_jwt_token>
+Content-Type: application/json
+
+ */
