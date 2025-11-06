@@ -1,7 +1,7 @@
 package com.example.wallet_service_micro.exception.handler;
 
 import com.example.wallet_service_micro.dto.risk.ErrorResponse;
-import com.example.wallet_service_micro.exception.RemoteUserServiceException;
+import com.example.wallet_service_micro.exception.user.RemoteUserServiceException;
 import com.example.wallet_service_micro.exception.auth.ForbiddenException;
 import com.example.wallet_service_micro.exception.auth.UnauthorizedException;
 import com.example.wallet_service_micro.exception.user.UserNotFoundException;
@@ -64,8 +64,6 @@ public class GlobalExceptionHandler {
                     .body(Map.of("error", ex.getMessage()));
         }
     }
-
-
 
 
     // ✅ Unauthorized

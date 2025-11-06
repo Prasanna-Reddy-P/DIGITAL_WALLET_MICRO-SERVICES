@@ -5,6 +5,12 @@ import java.time.LocalDateTime;
 import java.util.Map;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
+/*
+This tells Jackson (the library Spring Boot uses to convert objects to JSON)
+to ignore any fields that are null when sending the object as a JSON response.
+
+Only fields that have a value (not null) will appear in the JSON output.
+ */
 public class ErrorResponse {
     private LocalDateTime timestamp;
     private int status;

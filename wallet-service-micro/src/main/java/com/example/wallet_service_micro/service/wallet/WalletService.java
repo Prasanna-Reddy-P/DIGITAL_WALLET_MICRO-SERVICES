@@ -191,6 +191,14 @@ public class WalletService {
     // --------------------------------------------------------------------
     public Page<TransactionDTO> getTransactions(UserDTO user, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
+
+        /*
+        PageRequest.of(page, size) creates a PageRequest object:
+        page → which page to fetch (0-based index).
+        size → number of records per page.
+
+        Example: if page=0 and size=5, it will fetch the first 5 records
+         */
         return transactionRepository.findByUserId(user.getId(), pageable)
                 .map(transactionMapper::toDTO);
     }

@@ -63,7 +63,7 @@ public class AuthController {
         // Notify wallet-service
         try {
             restClient.post()
-                    .uri("http://localhost:8082/api/wallet/create?userId=" + savedUser.getId())
+                    .uri("http://localhost:8086/api/wallet/create?userId=" + savedUser.getId())
                     .retrieve()
                     .toBodilessEntity();
         } catch (Exception e) {

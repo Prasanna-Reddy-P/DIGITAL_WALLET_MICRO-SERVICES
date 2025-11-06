@@ -1,8 +1,7 @@
 package com.example.wallet_service_micro.client.user;
 
 import com.example.wallet_service_micro.dto.user.UserDTO;
-import com.example.wallet_service_micro.dto.user.UserInfoResponse;
-import com.example.wallet_service_micro.exception.RemoteUserServiceException;
+import com.example.wallet_service_micro.exception.user.RemoteUserServiceException;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
