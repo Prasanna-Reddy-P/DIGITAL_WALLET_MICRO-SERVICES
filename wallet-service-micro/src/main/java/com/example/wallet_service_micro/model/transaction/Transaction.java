@@ -4,25 +4,61 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "transaction")
 public class Transaction {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false, unique = true)
     private String transactionId;
+
+    public String getReceiverWalletName() {
+        return receiverWalletName;
+    }
+
+    public void setReceiverWalletName(String receiverWalletName) {
+        this.receiverWalletName = receiverWalletName;
+    }
+
+    @Column(nullable = false)
     private double amount;
+
+    @Column(nullable = false)
     private String type;
+
+    @Column(nullable = false)
     private LocalDateTime timestamp = LocalDateTime.now();
 
-    // ✅ replace ManyToOne User
+    // Link to user
+    @Column(nullable = false)
     private Long userId;
+
     private String userEmail;
+
+    public String getSenderWalletName() {
+        return senderWalletName;
+    }
+
+    public void setSenderWalletName(String senderWalletName) {
+        this.senderWalletName = senderWalletName;
+    }
+
+    // Link to specific wallet
+    @Column(nullable = false)
+    private Long walletId;
+
+    @Column(nullable = false)
+    private String walletName;
+
+    // ✅ Newly added fields
+    private String senderWalletName;
+    private String receiverWalletName;
 
     public Transaction() {}
 
     // --- Getters and Setters ---
-
     public Long getId() {
         return id;
     }
@@ -30,6 +66,9 @@ public class Transaction {
     public void setId(Long id) {
         this.id = id;
     }
+
+    public String getWalletName() { return walletName; }
+    public void setWalletName(String walletName) { this.walletName = walletName; }
 
     public String getTransactionId() {
         return transactionId;
@@ -77,5 +116,13 @@ public class Transaction {
 
     public void setUserEmail(String userEmail) {
         this.userEmail = userEmail;
+    }
+
+    public Long getWalletId() {
+        return walletId;
+    }
+
+    public void setWalletId(Long walletId) {
+        this.walletId = walletId;
     }
 }

@@ -6,6 +6,7 @@ public class LoadMoneyResponse {
     private Double remainingDailyLimit;
     private Boolean frozen;
     private String message;
+    private String walletName;
 
     // Getters & Setters
     public Double getBalance() { return balance; }
@@ -22,4 +23,12 @@ public class LoadMoneyResponse {
 
     public String getMessage() { return message; }
     public void setMessage(String message) { this.message = message; }
+
+    public String getWalletName() {
+        return walletName;
+    }
+
+    public void setWalletName(String walletName) {
+        this.walletName = walletName;
+    }
 }

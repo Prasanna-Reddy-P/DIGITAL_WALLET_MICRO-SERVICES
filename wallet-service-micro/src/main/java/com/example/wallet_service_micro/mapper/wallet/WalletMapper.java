@@ -1,6 +1,7 @@
 package com.example.wallet_service_micro.mapper.wallet;
 
 import com.example.wallet_service_micro.dto.loadMoney.LoadMoneyResponse;
+import com.example.wallet_service_micro.dto.selfTransfer.UserInternalTransferResponse;
 import com.example.wallet_service_micro.dto.transferMoney.TransferResponse;
 import com.example.wallet_service_micro.dto.wallet.WalletBalanceResponse;
 import com.example.wallet_service_micro.model.wallet.Wallet;
@@ -19,7 +20,7 @@ public interface WalletMapper {
 
     @Mapping(target = "senderBalance", source = "wallet.balance")
     @Mapping(target = "frozen", source = "wallet.frozen")
-    @Mapping(target = "recipientBalance", ignore = true)
+    //@Mapping(target = "recipientBalance", ignore = true)
     @Mapping(target = "amountTransferred", ignore = true)
     @Mapping(target = "message", ignore = true)
     TransferResponse toTransferResponse(Wallet wallet);
@@ -29,4 +30,18 @@ public interface WalletMapper {
     @Mapping(target = "balance", source = "wallet.balance")
     @Mapping(target = "frozen", source = "wallet.frozen")
     WalletBalanceResponse toBalanceResponse(Wallet wallet);
+
+    // ---------------------------
+// map Wallet -> UserInternalTransferResponse
+// ---------------------------
+    @Mapping(target = "senderWalletName", source = "wallet.walletName")
+    @Mapping(target = "senderBalance", source = "wallet.balance")
+    @Mapping(target = "senderFrozen", source = "wallet.frozen")
+    @Mapping(target = "receiverWalletName", ignore = true)      // set manually in service
+    @Mapping(target = "receiverBalance", ignore = true)         // set manually in service
+    @Mapping(target = "amountTransferred", ignore = true)       // set manually in service
+    @Mapping(target = "remainingDailyLimit", ignore = true)     // set manually in service
+    @Mapping(target = "message", ignore = true)                 // set manually in service
+    UserInternalTransferResponse toInternalTransferResponse(Wallet wallet);
+
 }

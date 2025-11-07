@@ -4,11 +4,14 @@ import jakarta.validation.constraints.NotNull;
 
 public class TransferRequest {
 
-    @NotNull(message = "ReceiverId is must")
+    @NotNull(message = "ReceiverId is required")
     private Long receiverId;
 
-    @NotNull(message = "Amount is must")
+    @NotNull(message = "Amount is required")
     private Double amount;
+
+    @NotNull(message = "Sender wallet name is required")
+    private String senderWalletName;
 
     public TransferRequest() {}
 
@@ -17,4 +20,8 @@ public class TransferRequest {
 
     public Double getAmount() { return amount; }
     public void setAmount(Double amount) { this.amount = amount; }
+
+    public String getSenderWalletName() { return senderWalletName; }
+    public void setSenderWalletName(String senderWalletName) { this.senderWalletName = senderWalletName; }
+
 }

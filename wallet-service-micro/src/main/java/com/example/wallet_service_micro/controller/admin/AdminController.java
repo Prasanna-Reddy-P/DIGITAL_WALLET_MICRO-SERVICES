@@ -8,9 +8,7 @@ import com.example.wallet_service_micro.dto.wallet.WalletBalanceResponse;
 import com.example.wallet_service_micro.exception.auth.ForbiddenException;
 import com.example.wallet_service_micro.exception.auth.UnauthorizedException;
 import com.example.wallet_service_micro.exception.user.UserNotFoundException;
-import com.example.wallet_service_micro.model.wallet.Wallet;
 import com.example.wallet_service_micro.service.wallet.WalletService;
-import com.example.wallet_service_micro.service.factory.WalletFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,61 +26,56 @@ public class AdminController {
     private static final Logger logger = LoggerFactory.getLogger(AdminController.class);
 
     private final WalletService walletService;
-    private final WalletFactory walletFactory;
     private final UserClient userClient;
 
-    public AdminController(WalletService walletService, WalletFactory walletFactory, UserClient userClient) {
+    public AdminController(WalletService walletService, UserClient userClient) {
         this.walletService = walletService;
-        this.walletFactory = walletFactory;
         this.userClient = userClient;
     }
 
-    // --------------------------------------------------------------------
-    // ✅ GET ALL USERS (via user-service)
-    // --------------------------------------------------------------------
-    @GetMapping("/users")
-    public ResponseEntity<List<UserDTO>> getAllUsers(@RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader) {
-        logger.info("Received request: GET /admin/users");
-
+    // ✅ Unified Admin Validation
+    private UserDTO validateAdmin(String authHeader) {
         UserDTO admin = userClient.getUserFromToken(authHeader);
-        if (admin == null) throw new UnauthorizedException("Unauthorized access");
-        if (!"ADMIN".equals(admin.getRole())) throw new ForbiddenException("Admins only");
+        if (admin == null)
+            throw new UnauthorizedException("Unauthorized access");
 
+        if (!"ADMIN".equalsIgnoreCase(admin.getRole()))
+            throw new ForbiddenException("Admins only");
+
+        return admin;
+    }
+
+    // ✅ Get All Users (via user-service)
+    @GetMapping("/users")
+    public ResponseEntity<List<UserDTO>> getAllUsers(
+            @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader) {
+
+        validateAdmin(authHeader);
         List<UserDTO> users = userClient.getAllUsers(authHeader);
-
-        logger.info("Fetched {} users successfully", users.size());
 
         return ResponseEntity.ok(users);
     }
 
-    // --------------------------------------------------------------------
-    // ✅ GET USER DETAILS + WALLET INFO
-    // --------------------------------------------------------------------
+    // ✅ Get User Info + Default Wallet Balance
     @GetMapping("/users/{userId}")
     public ResponseEntity<UserInfoResponse> getUserById(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
             @PathVariable Long userId) {
 
-        logger.info("Received request: GET /admin/users/{}", userId);
-
-        UserDTO admin = userClient.getUserFromToken(authHeader);
-        if (admin == null) throw new UnauthorizedException("Unauthorized access");
-        if (!"ADMIN".equals(admin.getRole())) throw new ForbiddenException("Admins only");
+        validateAdmin(authHeader);
 
         UserDTO user = userClient.getUserById(userId, authHeader);
-
         if (user == null) throw new UserNotFoundException("User not found with ID " + userId);
 
-        Wallet wallet = walletFactory.getOrCreateWallet(user);
-        UserInfoResponse response = new UserInfoResponse(user.getName(), user.getEmail(), user.getRole(), wallet.getBalance());
+        WalletBalanceResponse wallet = walletService.getWalletByUserIdAndWalletName(userId, "Default");
 
-        logger.info("Fetched user {} successfully", userId);
+        UserInfoResponse response =
+                new UserInfoResponse(user.getName(), user.getEmail(), user.getRole(), wallet.getBalance());
+
         return ResponseEntity.ok(response);
     }
 
-    // --------------------------------------------------------------------
-    // ✅ GET USER TRANSACTIONS
-    // --------------------------------------------------------------------
+    // ✅ Get User Transaction History
     @GetMapping("/users/{userId}/transactions")
     public ResponseEntity<Page<TransactionDTO>> getUserTransactions(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
@@ -90,78 +83,86 @@ public class AdminController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
-        logger.info("Received request: GET /admin/users/{}/transactions?page={}&size={}", userId, page, size);
-
-        UserDTO admin = userClient.getUserFromToken(authHeader);
-        if (admin == null) throw new UnauthorizedException("Unauthorized access");
-        if (!"ADMIN".equals(admin.getRole())) throw new ForbiddenException("Admins only");
+        validateAdmin(authHeader);
 
         UserDTO user = userClient.getUserById(userId, authHeader);
-
         if (user == null) throw new UserNotFoundException("User not found with ID " + userId);
 
         Page<TransactionDTO> transactions = walletService.getTransactions(user, page, size);
 
-        logger.info("Fetched {} transactions for user {}", transactions.getNumberOfElements(), userId);
         return ResponseEntity.ok(transactions);
     }
 
-    // --------------------------------------------------------------------
-    // ✅ GET WALLET DETAILS BY USER ID
-    // --------------------------------------------------------------------
+    // ✅ Get Default Wallet (DTO)
     @GetMapping("/users/{userId}/wallet")
-    public ResponseEntity<Wallet> getWalletByUserId(
+    public ResponseEntity<WalletBalanceResponse> getWalletByUserId(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
             @PathVariable Long userId) {
 
-        logger.info("Received request: GET /admin/users/{}/wallet", userId);
+        validateAdmin(authHeader);
+        userClient.getUserById(userId, authHeader);
 
-        UserDTO admin = userClient.getUserFromToken(authHeader);
-        if (admin == null) throw new UnauthorizedException("Unauthorized access");
-        if (!"ADMIN".equals(admin.getRole())) throw new ForbiddenException("Admins only");
-
-        UserDTO user = userClient.getUserById(userId, authHeader);
-
-        if (user == null) throw new UserNotFoundException("User not found with ID " + userId);
-
-        Wallet wallet = walletFactory.getOrCreateWallet(user);
-        logger.info("Wallet fetched successfully for user {}", userId);
-
+        WalletBalanceResponse wallet = walletService.getWalletByUserIdAndWalletName(userId, "Default");
         return ResponseEntity.ok(wallet);
     }
 
-    // --------------------------------------------------------------------
-    // ✅ GET BALANCE BY USER ID
-    // --------------------------------------------------------------------
-    // --------------------------------------------------------------------
-// ✅ GET BALANCE BY USER ID (Admin only)
-// --------------------------------------------------------------------
+    // ✅ Get Default Wallet Balance
     @GetMapping("/users/{userId}/balance")
     public ResponseEntity<WalletBalanceResponse> getBalanceByUserId(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
             @PathVariable Long userId) {
 
-        logger.info("📊 [ADMIN][BALANCE] Request: userId={}", userId);
+        validateAdmin(authHeader);
 
-        // ✅ Validate admin
-        UserDTO admin = userClient.getUserFromToken(authHeader);
-        if (admin == null) throw new UnauthorizedException("Unauthorized access");
-        if (!"ADMIN".equalsIgnoreCase(admin.getRole()))
-            throw new ForbiddenException("Only admins can access user balances");
+        userClient.getUserById(userId, authHeader);
+        WalletBalanceResponse response = walletService.getWalletByUserIdAndWalletName(userId, "Default");
 
-        // ✅ Fetch target user
-        UserDTO user = userClient.getUserById(userId, authHeader);
-        if (user == null)
-            throw new UserNotFoundException("User not found with ID: " + userId);
-
-        // ✅ Get wallet and map response
-        Wallet wallet = walletFactory.getOrCreateWallet(user);
-        WalletBalanceResponse response = walletService.toWalletBalanceResponse(wallet);
-        response.setMessage("Balance fetched successfully for user ID: " + userId);
-
-        logger.info("✅ [ADMIN][BALANCE] userId={} | balance={}", userId, wallet.getBalance());
-
+        response.setMessage("Balance fetched successfully for userId=" + userId);
         return ResponseEntity.ok(response);
     }
 
+    // ✅ Get All Wallets for a User (DTO)
+    @GetMapping("/users/{userId}/wallets")
+    public ResponseEntity<List<WalletBalanceResponse>> getAllWalletsByUserId(
+            @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
+            @PathVariable Long userId) {
+
+        validateAdmin(authHeader);
+        userClient.getUserById(userId, authHeader);
+
+        List<WalletBalanceResponse> wallets = walletService.getAllWalletsByUserId(userId);
+
+        return ResponseEntity.ok(wallets);
+    }
+
+    // ✅ Get Specific Wallet by Name (DTO)
+    @GetMapping("/users/{userId}/wallets/by-name/{walletName}")
+    public ResponseEntity<WalletBalanceResponse> getWalletByUserIdAndWalletName(
+            @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
+            @PathVariable Long userId,
+            @PathVariable String walletName) {
+
+        validateAdmin(authHeader);
+        userClient.getUserById(userId, authHeader);
+
+        WalletBalanceResponse wallet = walletService.getWalletByUserIdAndWalletName(userId, walletName);
+
+        return ResponseEntity.ok(wallet);
+    }
+
+    // ✅ Get Balance of Specific Wallet (DTO)
+    @GetMapping("/users/{userId}/wallets/by-name/{walletName}/balance")
+    public ResponseEntity<WalletBalanceResponse> getWalletBalanceByUserIdAndWalletName(
+            @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
+            @PathVariable Long userId,
+            @PathVariable String walletName) {
+
+        validateAdmin(authHeader);
+        userClient.getUserById(userId, authHeader);
+
+        WalletBalanceResponse wallet = walletService.getWalletByUserIdAndWalletName(userId, walletName);
+        wallet.setMessage("Balance fetched successfully for wallet '" + walletName + "'");
+
+        return ResponseEntity.ok(wallet);
+    }
 }

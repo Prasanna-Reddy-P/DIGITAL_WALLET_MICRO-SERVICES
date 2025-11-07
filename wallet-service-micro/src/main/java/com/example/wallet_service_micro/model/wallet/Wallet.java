@@ -4,16 +4,19 @@ import jakarta.persistence.*;
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "wallet")
+@Table(name = "wallet",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "wallet_name"}))
 public class Wallet {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Instead of mapping User directly, store userId from user-service
     @Column(nullable = false)
     private Long userId;
+
+    @Column(nullable = false)
+    private String walletName; // new
 
     private Double balance = 0.0;
     private Double dailySpent = 0.0;
@@ -24,15 +27,18 @@ public class Wallet {
     @Column(nullable = false)
     private Long version = 0L;
 
+    // Constructors
     public Wallet() {}
 
-    public Wallet(Long userId) {
+    public Wallet(Long userId, String walletName) {
         this.userId = userId;
+        this.walletName = walletName;
         this.balance = 0.0;
         this.dailySpent = 0.0;
         this.frozen = false;
         this.lastTransactionDate = LocalDate.now();
     }
+
 
     // --- Getters & Setters ---
     public Long getId() { return id; }
@@ -62,6 +68,15 @@ public class Wallet {
     public Long getVersion() { return version; }
 
     public void setVersion(Long version) { this.version = version; }
+
+    public String getWalletName() {
+        return walletName;
+    }
+
+    public void setWalletName(String walletName) {
+        this.walletName = walletName;
+    }
+
 
     // Helper
     public void resetDailyIfNewDay() {
