@@ -51,19 +51,10 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(RemoteUserServiceException.class)
-    public ResponseEntity<Object> handleRemoteUserServiceException(RemoteUserServiceException ex) {
-        try {
-            return ResponseEntity
-                    .status(HttpStatus.BAD_GATEWAY)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(new ObjectMapper().readValue(ex.getMessage(), Object.class)); // Parse JSON string back
-        } catch (Exception e) {
-            // fallback if the message isn't JSON
-            return ResponseEntity
-                    .status(HttpStatus.BAD_GATEWAY)
-                    .body(Map.of("error", ex.getMessage()));
-        }
+    public ResponseEntity<ErrorResponse> handleRemoteUserServiceException(RemoteUserServiceException ex) {
+        return buildError(HttpStatus.BAD_GATEWAY, "Remote User Service Error", ex.getMessage());
     }
+
 
 
     // ✅ Unauthorized
