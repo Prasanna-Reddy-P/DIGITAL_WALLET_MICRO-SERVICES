@@ -180,13 +180,22 @@ public class WalletController {
     @PostMapping("/create")
     public ResponseEntity<CreateWalletResponse> createWallet(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
-            @Valid @RequestBody CreateWalletRequest request) {
+            @RequestBody CreateWalletRequest request) {
 
         UserDTO user = userClient.getUserFromToken(authHeader);
 
+        // ✅ Validate wallet name before calling service
+        if (request.getWalletName() == null || request.getWalletName().trim().isEmpty()) {
+            CreateWalletResponse errorResp = new CreateWalletResponse();
+            errorResp.setMessage("Wallet name cannot be empty");
+            return ResponseEntity.badRequest().body(errorResp);
+        }
+
+        // Call service only if valid
         CreateWalletResponse response =
                 walletManagementService.createWallet(user, request.getWalletName());
 
         return ResponseEntity.ok(response);
     }
+
 }

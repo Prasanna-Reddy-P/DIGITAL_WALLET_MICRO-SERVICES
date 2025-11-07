@@ -54,17 +54,10 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     Page<Transaction> findByUserIdAndWalletName(Long userId, String walletName, Pageable pageable);
 
-    @Query("""
-    SELECT t FROM Transaction t 
-    WHERE t.userId = :userId 
-      AND t.walletName = :walletName
-""")
+    @Query("SELECT t FROM Transaction t WHERE t.userId = :userId AND t.walletName = :walletName")
     Page<Transaction> findTransactionsByUserAndWallet(
             @Param("userId") Long userId,
             @Param("walletName") String walletName,
             Pageable pageable
     );
-
-
-
 }
