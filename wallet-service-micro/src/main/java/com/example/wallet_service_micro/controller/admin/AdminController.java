@@ -179,12 +179,17 @@ public class AdminController {
 
         walletService.blacklistWalletByName(userId, walletName, authHeader);
 
+        // ✅ Now fetch wallet states to determine userBlacklisted status
+        boolean allBlacklisted = walletService.areAllWalletsBlacklisted(userId);
+
         WalletBlacklistResponse response = new WalletBlacklistResponse(
                 userId,
                 walletName,
-                true,   // walletBlacklisted
-                true,   // userBlacklisted
-                "Wallet '" + walletName + "' for user " + userId + " was blacklisted successfully."
+                true,
+                allBlacklisted,
+                allBlacklisted
+                        ? "Wallet blacklisted. User also blacklisted because all wallets are blacklisted."
+                        : "Wallet blacklisted. User NOT blacklisted because other wallets are active."
         );
 
         return ResponseEntity.ok(response);

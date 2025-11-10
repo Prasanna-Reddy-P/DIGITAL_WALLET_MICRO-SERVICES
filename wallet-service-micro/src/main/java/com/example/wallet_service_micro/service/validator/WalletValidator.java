@@ -36,4 +36,13 @@ public class WalletValidator {
         if (wallet.getBalance() < amount)
             throw new IllegalArgumentException("Insufficient balance");
     }
+
+    public void validateNotBlacklisted(Wallet wallet) {
+        if (Boolean.TRUE.equals(wallet.getBlacklisted())) {
+            throw new IllegalStateException(
+                    "Wallet '" + wallet.getWalletName() + "' is blacklisted and cannot perform transactions."
+            );
+        }
+    }
+
 }

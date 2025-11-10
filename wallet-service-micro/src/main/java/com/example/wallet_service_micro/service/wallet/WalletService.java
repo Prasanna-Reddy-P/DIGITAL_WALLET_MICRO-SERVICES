@@ -103,6 +103,7 @@ public class WalletService {
 
         // ✅ Wallet must already exist
         Wallet wallet = walletManagementService.getExistingWallet(user, walletName);
+        walletValidator.validateNotBlacklisted(wallet);
 
         wallet.resetDailyIfNewDay();
         walletValidator.validateDailyLimit(wallet, amount);
@@ -161,6 +162,9 @@ public class WalletService {
         Wallet senderWallet = walletManagementService.getExistingWallet(sender, senderWalletName);
         Wallet receiverWallet = walletManagementService.getExistingWallet(recipient, receiverWalletName);
 
+        walletValidator.validateNotBlacklisted(senderWallet);     // ✅ ADD
+        walletValidator.validateNotBlacklisted(receiverWallet);   // ✅ ADD
+
         senderWallet.resetDailyIfNewDay();
         receiverWallet.resetDailyIfNewDay();
 
@@ -211,6 +215,9 @@ public class WalletService {
 
         Wallet senderWallet = walletManagementService.getExistingWallet(user, senderWalletName);
         Wallet receiverWallet = walletManagementService.getExistingWallet(user, receiverWalletName);
+
+        walletValidator.validateNotBlacklisted(senderWallet);     // ✅ ADD
+        walletValidator.validateNotBlacklisted(receiverWallet);   // ✅ ADD
 
         senderWallet.resetDailyIfNewDay();
         receiverWallet.resetDailyIfNewDay();
@@ -343,16 +350,32 @@ public class WalletService {
                         "Wallet '" + walletName + "' not found for userId=" + userId
                 ));
 
-        // ✅ Blacklist only this wallet (not frozen)
+        // ✅ Blacklist only this wallet
         wallet.setBlacklisted(true);
         walletRepository.save(wallet);
 
-        // ✅ Also blacklist the user in user-service
-        userClient.blacklistUser(userId, authHeader);
+        // ✅ After blacklisting, check if ALL wallets are now blacklisted
+        boolean allBlacklisted = walletRepository
+                .findByUserId(userId)
+                .stream()
+                .allMatch(Wallet::getBlacklisted);
 
-        logger.info("✅ Wallet '{}' for user {} has been BLACKLISTED, user also blacklisted", walletName, userId);
+        if (allBlacklisted) {
+            // ✅ Only now blacklist user
+            userClient.blacklistUser(userId, authHeader);
+            logger.info("✅ All wallets for user {} are BLACKLISTED → User also BLACKLISTED", userId);
+        } else {
+            logger.info("⚠️ Wallet '{}' for user {} blacklisted, but user NOT blacklisted (not all wallets blacklisted)",
+                    walletName, userId);
+        }
     }
 
+
+    public boolean areAllWalletsBlacklisted(Long userId) {
+        return walletRepository.findByUserId(userId)
+                .stream()
+                .allMatch(Wallet::getBlacklisted);
+    }
 
 
 }
