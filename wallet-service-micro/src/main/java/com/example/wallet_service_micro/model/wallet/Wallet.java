@@ -27,6 +27,10 @@ public class Wallet {
     @Column(nullable = false)
     private Long version = 0L;
 
+    @Column(nullable = false)
+    private Boolean blacklisted = false;
+
+
     // Constructors
     public Wallet() {}
 
@@ -75,6 +79,15 @@ public class Wallet {
 
     public void setWalletName(String walletName) {
         this.walletName = walletName;
+    }
+
+    // ✅ Getter & Setter for new field
+    public Boolean getBlacklisted() {
+        return blacklisted;
+    }
+
+    public void setBlacklisted(Boolean blacklisted) {
+        this.blacklisted = blacklisted;
     }
 
 

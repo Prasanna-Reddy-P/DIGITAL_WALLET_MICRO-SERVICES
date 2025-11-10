@@ -1,6 +1,7 @@
 package com.example.wallet_service_micro.controller.admin;
 
 import com.example.wallet_service_micro.client.user.UserClient;
+import com.example.wallet_service_micro.dto.BlackList.WalletBlacklistResponse;
 import com.example.wallet_service_micro.dto.transactions.TransactionDTO;
 import com.example.wallet_service_micro.dto.user.UserDTO;
 import com.example.wallet_service_micro.dto.user.UserInfoResponse;
@@ -165,4 +166,29 @@ public class AdminController {
 
         return ResponseEntity.ok(wallet);
     }
+
+    @PutMapping("/users/{userId}/wallets/{walletName}/blacklist")
+    public ResponseEntity<WalletBlacklistResponse> blacklistWallet(
+            @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
+            @PathVariable Long userId,
+            @PathVariable String walletName) {
+
+        validateAdmin(authHeader);
+
+        userClient.getUserById(userId, authHeader);
+
+        walletService.blacklistWalletByName(userId, walletName, authHeader);
+
+        WalletBlacklistResponse response = new WalletBlacklistResponse(
+                userId,
+                walletName,
+                true,   // walletBlacklisted
+                true,   // userBlacklisted
+                "Wallet '" + walletName + "' for user " + userId + " was blacklisted successfully."
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
+
 }

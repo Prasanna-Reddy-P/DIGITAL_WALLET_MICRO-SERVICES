@@ -23,6 +23,10 @@ public class User {
     @Max(value = 100, message = "Age cannot be greater than 100")
     private Integer age;  // <-- Add this field
 
+    @Column(nullable = false)
+    private Boolean blacklisted = false;
+
+
     // Default constructor
     public User() {}
     // Default constructor — required by JPA to create objects automatically.
@@ -87,4 +91,13 @@ public class User {
     public Integer getAge() { return age; }// getter
 
     public void setAge(Integer age) { this.age = age; }  // setter
+
+    public Boolean getBlacklisted() {
+        return blacklisted;
+    }
+
+    public void setBlacklisted(Boolean blacklisted) {
+        this.blacklisted = blacklisted;
+    }
+
 }

@@ -55,4 +55,13 @@ public class UserService {
         return new UserInfoResponse(user.getName(), user.getEmail(), user.getRole());
     }
 
+    public void blacklistUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found with ID " + userId));
+
+        user.setBlacklisted(true);   // ✅ Set new field
+        userRepository.save(user);   // ✅ Persist update
+    }
+
+
 }

@@ -49,6 +49,21 @@ public class AdminController {
         return ResponseEntity.ok(user);
     }
 
+    // ✅ NEW ENDPOINT (Admin: Blacklist a user)
+    @PostMapping("/{userId}/blacklist")
+    public ResponseEntity<String> blacklistUser(
+            @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
+            @PathVariable Long userId) {
+
+        User admin = userService.getUserFromToken(authHeader);
+        if (admin == null) throw new UnauthorizedException("Unauthorized access");
+        if (!"ADMIN".equals(admin.getRole())) throw new ForbiddenException("Admins only");
+
+        userService.blacklistUser(userId);
+
+        return ResponseEntity.ok("User blacklisted successfully");
+    }
+
 }
 
 /*

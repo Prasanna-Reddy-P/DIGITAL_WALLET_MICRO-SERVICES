@@ -332,5 +332,27 @@ public class WalletService {
         return tx.map(transactionMapper::toDTO);
     }
 
+    // --------------------------------------------------------------------
+// ✅ ADMIN: Blacklist wallet by userId + walletName
+// --------------------------------------------------------------------
+    public void blacklistWalletByName(Long userId, String walletName, String authHeader) {
+
+        // ✅ Fetch wallet for user
+        Wallet wallet = walletRepository.findByUserIdAndWalletName(userId, walletName)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Wallet '" + walletName + "' not found for userId=" + userId
+                ));
+
+        // ✅ Blacklist only this wallet (not frozen)
+        wallet.setBlacklisted(true);
+        walletRepository.save(wallet);
+
+        // ✅ Also blacklist the user in user-service
+        userClient.blacklistUser(userId, authHeader);
+
+        logger.info("✅ Wallet '{}' for user {} has been BLACKLISTED, user also blacklisted", walletName, userId);
+    }
+
+
 
 }

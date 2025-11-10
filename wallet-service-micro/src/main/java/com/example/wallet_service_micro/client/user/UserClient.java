@@ -87,4 +87,22 @@ public class UserClient { // UserClient is an HTTP Client used to interact with 
             return ex.getStatusCode() + " " + ex.getStatusText();
         }
     }
+
+    public void blacklistUser(Long userId, String authHeader) {
+        String url = userServiceUrl + "/api/admin/users/" + userId + "/blacklist"; // Constructing final URL.
+
+        try {
+            webClient.post() // Initiates an HTTP POST request.
+                    .uri(url) // Target admin endpoint
+                    .header(HttpHeaders.AUTHORIZATION, authHeader)
+                    .retrieve() // Prepare client for the HTTP call.
+                    .bodyToMono(Void.class) // No response body expected.
+                    .block(); // Wait synchronously for completion.
+        } catch (WebClientResponseException ex) {
+            throw new RemoteUserServiceException(extractMessage(ex)); // Remote error translated
+        } catch (Exception ex) {
+            throw new RemoteUserServiceException("User-service is unavailable: " + ex.getMessage());
+        }
+    }
+
 }
