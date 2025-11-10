@@ -22,8 +22,6 @@ public interface UserMapper {
 
 Why we map only getName() & getEmail()
 DTO only has name, email, balance.
-So we ignore fields like password, id, role, age.
-
 DTO has balance but User entity doesn’t.
 
 @Override

@@ -25,25 +25,39 @@ JwtFilter runs before every secured request, this class runs once per HTTP reque
     Does this request have a valid JWT token? If yes, authenticate the user.
 
     @Component → Makes Spring automatically detect and register this filter as a bean.
+    Why not @Service, Even if both have the same functionality, @Service annotation is mainly used to represent class
+    with business logic.
 
     OncePerRequestFilter → Ensures it runs exactly once per request
  */
-    @Autowired
+    @Autowired // Annotation used for automatic dependency injection.
     private JwtUtil jwtUtil;
 
     @Autowired
     private UserRepository userRepository;
 
     /*
-    JwtUtil helps validate and extract data from the token.
+    JwtUtil helps validate and extract data from the JW token. (JSON Web Token).
     UserRepository fetches the user from DB (to set authorities/roles).
      */
 
     @Override
+    // this annotation is used to indicate that doFilterInternal method is over-riding a method from its super class
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain)
             throws ServletException, IOException {
+
+        /*
+        HttpServeletRequest request - Represents incoming HTTP request which consists of all the required data:
+        - headers, URL, method
+
+        HttpServeletResponse response - Represents the HTTP response that will be sent back.
+        - response status, JSON body
+
+        FilterChain filterChain - represents chain of filters, that a request has to pass before it hits the controller.
+
+         */
 
         String path = request.getRequestURI();
 
@@ -63,6 +77,10 @@ JwtFilter runs before every secured request, this class runs once per HTTP reque
         then authHeader will contain that entire string:
         "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 
+        request represents the incoming HttpServletRequest.
+        .getHeader method is used to extract the header of the JWT token, which is indicated with a
+        constant called Authorization.
+
          */
         String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
         /*
@@ -70,7 +88,7 @@ JwtFilter runs before every secured request, this class runs once per HTTP reque
         to retrieve the value of the "Authorization" HTTP header from an incoming client request.
          */
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // 401 UnAuthorised
             return;
         }
 

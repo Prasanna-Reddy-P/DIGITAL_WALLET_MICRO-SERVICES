@@ -28,7 +28,7 @@ public class AdminController {
         this.userService = userService;
     }
 
-    @GetMapping
+    @GetMapping // represents as a handler for HTTP GET requests.
     public ResponseEntity<List<UserDTO>> getAllUsers(@RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader) {
         User admin = userService.getUserFromToken(authHeader);
         if (admin == null) throw new UnauthorizedException("Unauthorized access");
@@ -50,3 +50,14 @@ public class AdminController {
     }
 
 }
+
+/*
+What is ResponseEntity?
+
+ResponseEntity is a Spring class that represents the entire HTTP response, including:
+
+HTTP status code (200, 400, 401, 500…)
+Headers (Content-Type, Authorization, Location, etc.)
+Body (JSON, objects, text, etc.)
+It is the most powerful way to control an HTTP response in Spring MVC and Spring Web.
+ */

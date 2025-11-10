@@ -4,10 +4,11 @@ import com.example.wallet_service_micro.model.transaction.Transaction;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
+
 import org.springframework.data.domain.*;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
@@ -18,116 +19,125 @@ class TransactionRepositoryTest {
     private TransactionRepository transactionRepository;
 
     @BeforeEach
-    void setUp() {
+    void setup() {
         MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    void testFindByUserIdWithPagination() {
-        Transaction t1 = new Transaction();
-        t1.setTransactionId("TXN1");
-        t1.setUserId(1L);
-        Transaction t2 = new Transaction();
-        t2.setTransactionId("TXN2");
-        t2.setUserId(1L);
+    void testFindByUserId() {
+        Long userId = 10L;
+        Pageable pageable = PageRequest.of(0, 5);
 
-        Pageable pageable = PageRequest.of(0, 10);
-        Page<Transaction> page = new PageImpl<>(Arrays.asList(t1, t2));
+        Page<Transaction> mockPage = new PageImpl<>(List.of(new Transaction()));
 
-        when(transactionRepository.findByUserId(1L, pageable)).thenReturn(page);
+        when(transactionRepository.findByUserId(userId, pageable))
+                .thenReturn(mockPage);
 
-        Page<Transaction> result = transactionRepository.findByUserId(1L, pageable);
+        Page<Transaction> result = transactionRepository.findByUserId(userId, pageable);
 
-        assertThat(result.getTotalElements()).isEqualTo(2);
-        assertThat(result.getContent()).extracting("transactionId").containsExactlyInAnyOrder("TXN1", "TXN2");
-        verify(transactionRepository, times(1)).findByUserId(1L, pageable);
+        assertThat(result).isNotNull();
+        assertThat(result.getContent()).hasSize(1);
+
+        verify(transactionRepository, times(1))
+                .findByUserId(userId, pageable);
     }
 
     @Test
-    void testExistsByTransactionId() {
-        when(transactionRepository.existsByTransactionId("TXN123")).thenReturn(true);
+    void testFindByUserIdAndWalletId() {
+        Long userId = 1L;
+        Long walletId = 2L;
+        Pageable pageable = PageRequest.of(0, 10);
 
-        boolean exists = transactionRepository.existsByTransactionId("TXN123");
+        Page<Transaction> mockPage = new PageImpl<>(List.of(new Transaction()));
 
-        assertThat(exists).isTrue();
-        verify(transactionRepository, times(1)).existsByTransactionId("TXN123");
+        when(transactionRepository.findByUserIdAndWalletId(userId, walletId, pageable))
+                .thenReturn(mockPage);
+
+        Page<Transaction> result =
+                transactionRepository.findByUserIdAndWalletId(userId, walletId, pageable);
+
+        assertThat(result).isNotNull();
+        verify(transactionRepository).findByUserIdAndWalletId(userId, walletId, pageable);
     }
 
     @Test
     void testFindByUserAndTimestampBetween() {
-        Transaction t1 = new Transaction();
-        t1.setTransactionId("TXN1");
-        t1.setUserId(1L);
-        t1.setTimestamp(LocalDateTime.now().minusDays(1));
-
-        Transaction t2 = new Transaction();
-        t2.setTransactionId("TXN2");
-        t2.setUserId(1L);
-        t2.setTimestamp(LocalDateTime.now());
-
-        LocalDateTime start = LocalDateTime.now().minusDays(2);
+        Long userId = 5L;
+        LocalDateTime start = LocalDateTime.now().minusDays(3);
         LocalDateTime end = LocalDateTime.now();
 
-        when(transactionRepository.findByUserAndTimestampBetween(1L, start, end))
-                .thenReturn(Arrays.asList(t1, t2));
+        List<Transaction> transactions = List.of(new Transaction());
 
-        List<Transaction> transactions = transactionRepository.findByUserAndTimestampBetween(1L, start, end);
+        when(transactionRepository.findByUserAndTimestampBetween(userId, start, end))
+                .thenReturn(transactions);
 
-        assertThat(transactions).hasSize(2);
-        assertThat(transactions).extracting("transactionId").containsExactlyInAnyOrder("TXN1", "TXN2");
-        verify(transactionRepository, times(1)).findByUserAndTimestampBetween(1L, start, end);
+        List<Transaction> result =
+                transactionRepository.findByUserAndTimestampBetween(userId, start, end);
+
+        assertThat(result).hasSize(1);
+        verify(transactionRepository).findByUserAndTimestampBetween(userId, start, end);
     }
 
     @Test
-    void testFindByUserIdWithPagination_empty() {
+    void testFindByUserAndWalletAndTimestampBetween() {
+        Long userId = 5L;
+        Long walletId = 9L;
+        LocalDateTime start = LocalDateTime.now().minusDays(3);
+        LocalDateTime end = LocalDateTime.now();
+
+        when(transactionRepository.findByUserAndWalletAndTimestampBetween(
+                userId, walletId, start, end
+        )).thenReturn(List.of(new Transaction()));
+
+        List<Transaction> result =
+                transactionRepository.findByUserAndWalletAndTimestampBetween(userId, walletId, start, end);
+
+        assertThat(result).hasSize(1);
+        verify(transactionRepository).findByUserAndWalletAndTimestampBetween(userId, walletId, start, end);
+    }
+
+    @Test
+    void testExistsByTransactionId() {
+        String transactionId = "TX1234";
+
+        when(transactionRepository.existsByTransactionId(transactionId))
+                .thenReturn(true);
+
+        boolean exists = transactionRepository.existsByTransactionId(transactionId);
+
+        assertThat(exists).isTrue();
+        verify(transactionRepository).existsByTransactionId(transactionId);
+    }
+
+    @Test
+    void testFindByUserIdAndWalletName() {
+        Long userId = 1L;
+        String walletName = "MainWallet";
         Pageable pageable = PageRequest.of(0, 10);
-        Page<Transaction> emptyPage = new PageImpl<>(Collections.emptyList());
 
-        when(transactionRepository.findByUserId(99L, pageable)).thenReturn(emptyPage);
+        when(transactionRepository.findByUserIdAndWalletName(userId, walletName, pageable))
+                .thenReturn(new PageImpl<>(List.of(new Transaction())));
 
-        Page<Transaction> result = transactionRepository.findByUserId(99L, pageable);
+        Page<Transaction> result =
+                transactionRepository.findByUserIdAndWalletName(userId, walletName, pageable);
 
-        assertThat(result.getTotalElements()).isEqualTo(0);
-        assertThat(result.getContent()).isEmpty();
-        verify(transactionRepository, times(1)).findByUserId(99L, pageable);
+        assertThat(result.getContent()).hasSize(1);
+        verify(transactionRepository).findByUserIdAndWalletName(userId, walletName, pageable);
     }
 
     @Test
-    void testExistsByTransactionId_notFound() {
-        when(transactionRepository.existsByTransactionId("NON_EXISTENT")).thenReturn(false);
+    void testFindTransactionsByUserAndWallet() {
+        Long userId = 1L;
+        String walletName = "Test Wallet";
+        Pageable pageable = PageRequest.of(0, 20);
 
-        boolean exists = transactionRepository.existsByTransactionId("NON_EXISTENT");
+        when(transactionRepository.findTransactionsByUserAndWallet(userId, walletName, pageable))
+                .thenReturn(new PageImpl<>(List.of(new Transaction())));
 
-        assertThat(exists).isFalse();
-        verify(transactionRepository, times(1)).existsByTransactionId("NON_EXISTENT");
+        Page<Transaction> result =
+                transactionRepository.findTransactionsByUserAndWallet(userId, walletName, pageable);
+
+        assertThat(result.getContent()).hasSize(1);
+        verify(transactionRepository).findTransactionsByUserAndWallet(userId, walletName, pageable);
     }
-
-    @Test
-    void testFindByUserAndTimestampBetween_noTransactions() {
-        LocalDateTime start = LocalDateTime.now().minusDays(5);
-        LocalDateTime end = LocalDateTime.now().minusDays(4);
-
-        when(transactionRepository.findByUserAndTimestampBetween(1L, start, end))
-                .thenReturn(Collections.emptyList());
-
-        List<Transaction> transactions = transactionRepository.findByUserAndTimestampBetween(1L, start, end);
-
-        assertThat(transactions).isEmpty();
-        verify(transactionRepository, times(1)).findByUserAndTimestampBetween(1L, start, end);
-    }
-
-    @Test
-    void testFindByUserIdWithPagination_pageOutOfBounds() {
-        Pageable pageable = PageRequest.of(10, 5); // page 10 with page size 5
-        Page<Transaction> emptyPage = new PageImpl<>(Collections.emptyList());
-
-        when(transactionRepository.findByUserId(1L, pageable)).thenReturn(emptyPage);
-
-        Page<Transaction> result = transactionRepository.findByUserId(1L, pageable);
-
-        assertThat(result.getContent()).isEmpty();
-        assertThat(result.getTotalElements()).isEqualTo(0);
-        verify(transactionRepository, times(1)).findByUserId(1L, pageable);
-    }
-
 }

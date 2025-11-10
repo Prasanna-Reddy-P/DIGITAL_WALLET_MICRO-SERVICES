@@ -61,3 +61,13 @@ public class    JwtFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 }
+
+
+/*
+✅ What is UsernamePasswordAuthenticationToken?
+
+It is a Spring Security authentication object used to represent:
+✅ the authenticated user (principal)
+✅ the user's password (after login) or null
+✅ the user's authorities/roles (credentials)
+ */

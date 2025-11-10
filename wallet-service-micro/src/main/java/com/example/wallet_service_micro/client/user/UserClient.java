@@ -2,22 +2,22 @@ package com.example.wallet_service_micro.client.user;
 
 import com.example.wallet_service_micro.dto.user.UserDTO;
 import com.example.wallet_service_micro.exception.user.RemoteUserServiceException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.beans.factory.annotation.Value;
+import com.fasterxml.jackson.databind.ObjectMapper; // Used to parse the JSON response.
+import org.springframework.beans.factory.annotation.Value; // injects values from application.properties
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClient; // HTTP Client used for API calls.
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.util.List;
 import java.util.Map;
 
 @Component
-public class UserClient {
+public class UserClient { // UserClient is an HTTP Client used to interact with UserService
 
-    private final WebClient webClient;
-    private final String userServiceUrl;
-    private final ObjectMapper objectMapper;
+    private final WebClient webClient; // HTTP Client used to send HTTP requests.
+    private final String userServiceUrl; // Base URL of the UserService injected from application.properties
+    private final ObjectMapper objectMapper; // Used to parse the JSON Error response into maps.
 
     public UserClient(WebClient webClient, @Value("${user.service.url}") String userServiceUrl) {
         this.webClient = webClient;
@@ -26,14 +26,14 @@ public class UserClient {
     }
 
     public UserDTO getUserById(Long userId, String authHeader) {
-        String url = userServiceUrl + "/api/users/" + userId;
+        String url = userServiceUrl + "/api/users/" + userId; // Constructing the final URL.
         try {
-            return webClient.get()
-                    .uri(url)
+            return webClient.get() // This initiates an HTTP GET request using the WebClient instance.
+                    .uri(url) // URI (Uniform Resource Identifier, is a way to identify any resource online, URI is a Subset of URL.
                     .header(HttpHeaders.AUTHORIZATION, authHeader)
-                    .retrieve()
-                    .bodyToMono(UserDTO.class)
-                    .block();
+                    .retrieve() // Tells the webClient to prepare for the HTTP call.
+                    .bodyToMono(UserDTO.class) // this method ia mainly used to extract the body of HTTP request and convert it into a Mono of specified type.
+                    .block(); // Wait synchronously for response, returns UserDTO if HTTP 200, throws WebClientResponseException, if HTTP 4xx or 5xx
         } catch (WebClientResponseException ex) {
             throw new RemoteUserServiceException(extractMessage(ex));
         } catch (Exception ex) {

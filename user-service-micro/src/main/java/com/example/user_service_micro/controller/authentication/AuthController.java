@@ -41,6 +41,10 @@ public class AuthController {
     // ------------------- USER SIGNUP -------------------
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@Valid @RequestBody SignupRequest signupRequest) {
+        /*
+        @RequestBody - whatever the request we are sending via JSON body, convert it to a
+        java object type SignupRequest.
+         */
         if (signupRequest.getAge() < 18) {
             return ResponseEntity.badRequest().body("User must be at least 18 years old");
         }
@@ -87,7 +91,7 @@ public class AuthController {
     @PostMapping("/signup-admin")
     public ResponseEntity<?> signupAdmin(@Valid @RequestBody SignupRequest signupRequest,
                                          @RequestHeader("X-ADMIN-SECRET") String adminSecret) {
-        final String SECRET_KEY = "SuperSecretAdminKey123"; // TODO: move to env var or config
+        final String SECRET_KEY = "SuperSecretAdminKey123";
 
         if (!SECRET_KEY.equals(adminSecret)) {
             return ResponseEntity.status(403).body("Forbidden: Invalid admin secret");
