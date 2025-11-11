@@ -105,4 +105,22 @@ public class UserClient { // UserClient is an HTTP Client used to interact with 
         }
     }
 
+    public void unblacklistUser(Long userId, String authHeader) {
+        String url = userServiceUrl + "/api/admin/users/" + userId + "/unblacklist";
+
+        try {
+            webClient.post()
+                    .uri(url)
+                    .header(HttpHeaders.AUTHORIZATION, authHeader)
+                    .retrieve()
+                    .bodyToMono(Void.class)
+                    .block();
+        } catch (WebClientResponseException ex) {
+            throw new RemoteUserServiceException(extractMessage(ex));
+        } catch (Exception ex) {
+            throw new RemoteUserServiceException("User-service is unavailable: " + ex.getMessage());
+        }
+    }
+
+
 }

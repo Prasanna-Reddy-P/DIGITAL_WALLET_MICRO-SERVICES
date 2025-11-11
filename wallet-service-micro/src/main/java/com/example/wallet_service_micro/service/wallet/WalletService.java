@@ -409,4 +409,19 @@ public class WalletService {
     }
 
 
+    @Transactional
+    public void unblacklistAllWallets(Long userId, String authHeader) {
+        List<Wallet> wallets = walletRepository.findByUserId(userId);
+        if (wallets.isEmpty()) return;
+
+        wallets.forEach(wallet -> wallet.setBlacklisted(false));
+        walletRepository.saveAll(wallets);
+
+        // Optionally: unblacklist user in user-service if needed
+        userClient.unblacklistUser(userId, authHeader);
+
+        logger.info("✅ All wallets for user {} are UNBLACKLISTED → User also UNBLACKLISTED", userId);
+    }
+
+
 }

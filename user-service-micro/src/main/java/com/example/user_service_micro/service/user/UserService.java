@@ -63,5 +63,12 @@ public class UserService {
         userRepository.save(user);   // ✅ Persist update
     }
 
+    // ✅ New: Unblacklist user
+    public void unblacklistUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.setBlacklisted(false);
+        userRepository.save(user);
+    }
 
 }

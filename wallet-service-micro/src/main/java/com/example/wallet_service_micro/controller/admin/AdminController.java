@@ -196,4 +196,17 @@ public class AdminController {
     }
 
 
+    @PutMapping("/users/{userId}/wallets/unblacklist")
+    public ResponseEntity<String> unblacklistUserWallets(
+            @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
+            @PathVariable Long userId) {
+
+        validateAdmin(authHeader);
+        userClient.getUserById(userId, authHeader); // ensure user exists
+
+        walletService.unblacklistAllWallets(userId, authHeader);
+
+        return ResponseEntity.ok("User and all wallets unblocked successfully");
+    }
+
 }

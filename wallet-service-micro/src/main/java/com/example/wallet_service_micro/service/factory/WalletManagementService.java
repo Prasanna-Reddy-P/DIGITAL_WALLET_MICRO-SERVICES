@@ -20,7 +20,12 @@ public class WalletManagementService {
     @Transactional
     public CreateWalletResponse createWallet(UserDTO user, String walletName) {
 
-        if (walletRepository.existsByUserIdAndWalletName(user.getId(), walletName)) {
+        walletName = walletName.trim();
+
+        Wallet existing = walletRepository.findByUserIdAndWalletName(user.getId(), walletName)
+                .orElse(null);
+
+        if (existing != null) {
             throw new IllegalArgumentException("Wallet already exists: " + walletName);
         }
 
@@ -34,6 +39,7 @@ public class WalletManagementService {
 
         return response;
     }
+
 
     // ✅ Fetch wallet ONLY if it exists
     public Wallet getExistingWallet(UserDTO user, String walletName) {
