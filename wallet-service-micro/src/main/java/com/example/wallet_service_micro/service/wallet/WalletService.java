@@ -74,7 +74,12 @@ public class WalletService {
     // --------------------------------------------------------------------
     // ✅ LOAD MONEY
     // --------------------------------------------------------------------
-    public LoadMoneyResponse loadMoney(UserDTO user, LoadMoneyRequest request, String transactionId, String walletName) {
+    public LoadMoneyResponse loadMoney(
+            UserDTO user,
+            LoadMoneyRequest request,
+            String transactionId,
+            String walletName
+    ) {
 
         if (user == null) throw new UserNotFoundException("User not found");
         if (request == null || request.getAmount() == null)
@@ -83,31 +88,35 @@ public class WalletService {
         if (txnService.isDuplicate(transactionId))
             throw new IllegalArgumentException("Duplicate transaction");
 
-        for (int attempt = 1; attempt <= 3; attempt++) {
-            try {
-                return performLoadMoney(user, request.getAmount(), transactionId, walletName);
-            } catch (ObjectOptimisticLockingFailureException e) {
-                if (attempt == 3) throw e;
-                sleep(300);
-            }
-        }
-        throw new RuntimeException("Unexpected load failure");
+        double amount = request.getAmount();
+
+        // ✅ Fetch wallet (no mutation)
+        Wallet wallet = walletManagementService.getExistingWallet(user, walletName);
+
+        // ✅ VALIDATIONS OUTSIDE TRANSACTION
+        walletValidator.validateNotBlacklisted(wallet);
+        walletValidator.validateAmount(amount, "Load");
+        wallet.resetDailyIfNewDay();              // safe to run outside
+        walletValidator.validateDailyLimit(wallet, amount);
+
+        // ✅ THEN call transactional mutation
+        return performLoadMoney(user, amount, transactionId, walletName);
     }
+
 
     @Transactional(propagation = Propagation.REQUIRES_NEW,
             isolation = Isolation.REPEATABLE_READ,
             rollbackFor = Exception.class)
-    public LoadMoneyResponse performLoadMoney(UserDTO user, double amount, String transactionId, String walletName) {
+    public LoadMoneyResponse performLoadMoney(
+            UserDTO user,
+            double amount,
+            String transactionId,
+            String walletName
+    ) {
 
-        walletValidator.validateAmount(amount, "Load");
-
-        // ✅ Wallet must already exist
         Wallet wallet = walletManagementService.getExistingWallet(user, walletName);
-        walletValidator.validateNotBlacklisted(wallet);
 
-        wallet.resetDailyIfNewDay();
-        walletValidator.validateDailyLimit(wallet, amount);
-
+        // ✅ NO VALIDATIONS HERE (only mutation)
         wallet.setBalance(wallet.getBalance() + amount);
         wallet.setDailySpent(wallet.getDailySpent() + amount);
 
@@ -126,11 +135,18 @@ public class WalletService {
         return response;
     }
 
+
     // --------------------------------------------------------------------
     // ✅ TRANSFER TO ANOTHER USER
     // --------------------------------------------------------------------
-    public TransferResponse transferAmount(UserDTO sender, Long receiverId, Double amount,
-                                           String transactionId, String senderWalletName, String authHeader) {
+    public TransferResponse transferAmount(
+            UserDTO sender,
+            Long receiverId,
+            Double amount,
+            String transactionId,
+            String senderWalletName,
+            String authHeader
+    ) {
 
         if (sender == null) throw new UserNotFoundException("Sender not found");
 
@@ -140,6 +156,22 @@ public class WalletService {
         if (txnService.isDuplicate(transactionId))
             throw new IllegalArgumentException("Duplicate transaction");
 
+        // ✅ VALIDATION
+        walletValidator.validateAmount(amount, "Transfer");
+
+        Wallet senderWallet = walletManagementService.getExistingWallet(sender, senderWalletName);
+        Wallet receiverWallet = walletManagementService.getExistingWallet(recipient, "Default");
+
+        walletValidator.validateNotBlacklisted(senderWallet);
+        walletValidator.validateNotBlacklisted(receiverWallet);
+
+        senderWallet.resetDailyIfNewDay();
+        receiverWallet.resetDailyIfNewDay();
+
+        walletValidator.validateFrozen(senderWallet);
+        walletValidator.validateBalance(senderWallet, amount);
+
+        // ✅ Call transactional mutate-only part
         for (int attempt = 1; attempt <= 3; attempt++) {
             try {
                 return performTransfer(sender, recipient, amount, transactionId, senderWalletName, "Default");
@@ -148,29 +180,27 @@ public class WalletService {
                 sleep(300);
             }
         }
+
         throw new RuntimeException("Unexpected transfer failure");
     }
+
 
     @Transactional(propagation = Propagation.REQUIRES_NEW,
             isolation = Isolation.REPEATABLE_READ,
             rollbackFor = Exception.class)
-    public TransferResponse performTransfer(UserDTO sender, UserDTO recipient, double amount,
-                                            String transactionId, String senderWalletName, String receiverWalletName) {
-
-        walletValidator.validateAmount(amount, "Transfer");
+    public TransferResponse performTransfer(
+            UserDTO sender,
+            UserDTO recipient,
+            double amount,
+            String transactionId,
+            String senderWalletName,
+            String receiverWalletName
+    ) {
 
         Wallet senderWallet = walletManagementService.getExistingWallet(sender, senderWalletName);
         Wallet receiverWallet = walletManagementService.getExistingWallet(recipient, receiverWalletName);
 
-        walletValidator.validateNotBlacklisted(senderWallet);     // ✅ ADD
-        walletValidator.validateNotBlacklisted(receiverWallet);   // ✅ ADD
-
-        senderWallet.resetDailyIfNewDay();
-        receiverWallet.resetDailyIfNewDay();
-
-        walletValidator.validateFrozen(senderWallet);
-        walletValidator.validateBalance(senderWallet, amount);
-
+        // ✅ MUTATION ONLY (no validation here)
         senderWallet.setBalance(senderWallet.getBalance() - amount);
         senderWallet.setDailySpent(senderWallet.getDailySpent() + amount);
 
@@ -195,6 +225,7 @@ public class WalletService {
 
         return response;
     }
+
 
     // --------------------------------------------------------------------
     // ✅ INTERNAL TRANSFER (User → User)

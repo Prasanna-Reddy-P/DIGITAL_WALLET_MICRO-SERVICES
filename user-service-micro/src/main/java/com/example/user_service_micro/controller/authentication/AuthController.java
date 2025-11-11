@@ -133,6 +133,16 @@ public class AuthController {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
 
+        // ✅ BLACKLIST CHECK
+        if (user.getBlacklisted()) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("status", "USER_BLACKLISTED");
+            error.put("message", "User is blacklisted and cannot login");
+            error.put("timestamp", java.time.LocalDateTime.now().toString());
+
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+        }
+
         if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new InvalidCredentialsException("Invalid email or password");
         }
