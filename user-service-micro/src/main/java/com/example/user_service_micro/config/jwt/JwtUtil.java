@@ -28,7 +28,7 @@
         private final long expiration;
 
         public JwtUtil(
-                @Value("${jwt.secret}") String secret, // @Value tells Spring to inject a value from the application properties file.
+                @Value("${jwt.secret}") String secret, // @Value tells Spring to inject a value from the application.properties file.
                 @Value("${jwt.expiration}") long expiration
         ) {
             this.key = Keys.hmacShaKeyFor(secret.getBytes());
@@ -55,7 +55,7 @@ so you can reuse it in both generateToken() and validateToken() methods.
 
         // jwts is a utility class from JJWT library. builder creates a JWT builder instance.
         public String generateToken(String email) {
-            return Jwts.builder()
+            return Jwts.builder() //Jwts is a class that originates from JJWT library, its used to setup the interface to build JWT token
                     .setSubject(email)
                     .setIssuedAt(new Date())
                     .setExpiration(new Date(System.currentTimeMillis() + expiration))

@@ -14,10 +14,37 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 
 import com.example.user_service_micro.config.JwtAuthEntryPoint;
 
+/*
+When we run the spring boot application, the classes that are annotated with @Configuration is loaded.
+SecurityConfig builds and registers the Spring Security filter chain via
+
+@Bean
+public SecurityFilterChain filterChain(HttpSecurity http)
+
+This chain decides:
+    - Which URLs are public or protected
+    - What filters to apply
+
+                SecurityConfig → defines which URLs require authentication, and which roles can access what
+                JwtFilter → reads the Authorization header, validates the JWT, sets authentication context.
+                JwtAuthEntryPoint → handles 401 errors when JWT is invalid, expired, or missing.
+
+ */
+
+
+/*
+@EnableMethodSecurity tells Spring Security:
+
+“In addition to the URL-based access rules you’ve defined in SecurityConfig,
+also look for method-level security annotations like
+@PreAuthorize, @PostAuthorize, @Secured, etc., and enforce them.”
+
+        YES, we can safely remove it if we are not using any method-level security annotations.
+ */
+
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
-
     @Autowired // Annotation used to perform dependency injection.
     private JwtFilter jwtFilter;
 
@@ -29,11 +56,16 @@ public class SecurityConfig {
         http // Starts the HttpSecurity configuration chain.
                 .csrf(csrf -> csrf.disable())
                 /*
-                CSRF only protects applications that use browser cookies for authentication.
+                CSRF(Cross-Site Request Forgery) only protects applications that use browser cookies for authentication.
                 But in your system:
 ✅ You use JWT tokens
 ✅ Tokens are sent in the Authorization header, not cookies
 ✅ Your API is stateless (no sessions)
+
+Why by default spring security enables CSRF ?
+    - spring security assumes that we are using session based authentication (with cookies), so it enables
+      CSRF by default to prevent these attacks.
+    - But, we disable because we are using JWT tokens, and they are stateless.
 
                  */
                 .authorizeHttpRequests(auth -> auth

@@ -39,13 +39,20 @@ public class AdminController {
 
     // ✅ Unified Admin Validation
     private UserDTO validateAdmin(String authHeader) {
+        logger.debug("🔐 Validating admin from Authorization header...");
         UserDTO admin = userClient.getUserFromToken(authHeader);
-        if (admin == null)
+
+        if (admin == null) {
+            logger.warn("❌ Unauthorized access attempt: token invalid or missing");
             throw new UnauthorizedException("Unauthorized access");
+        }
 
-        if (!"ADMIN".equalsIgnoreCase(admin.getRole()))
+        if (!"ADMIN".equalsIgnoreCase(admin.getRole())) {
+            logger.warn("🚫 Forbidden access attempt by userId={} with role={}", admin.getId(), admin.getRole());
             throw new ForbiddenException("Admins only");
+        }
 
+        logger.info("✅ Admin validated successfully: id={}, name={}, role={}", admin.getId(), admin.getName(), admin.getRole());
         return admin;
     }
 
@@ -55,6 +62,9 @@ public class AdminController {
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
             @RequestBody UserTransactionRequest request) {
 
+        logger.info("📘 Admin requested transaction history for userId={} (page={}, size={})",
+                request.getUserId(), request.getPage(), request.getSize());
+
         validateAdmin(authHeader);
 
         Long userId = request.getUserId();
@@ -62,9 +72,15 @@ public class AdminController {
         int size = request.getSize();
 
         UserDTO user = userClient.getUserById(userId, authHeader);
-        if (user == null) throw new UserNotFoundException("User not found with ID " + userId);
+        if (user == null) {
+            logger.error("❌ User not found with ID={}", userId);
+            throw new UserNotFoundException("User not found with ID " + userId);
+        }
 
+        logger.debug("➡ Fetching transactions from WalletService for userId={}", userId);
         Page<TransactionDTO> transactions = walletService.getTransactions(user, page, size);
+
+        logger.info("✅ Transaction history fetched successfully for userId={} with {} records", userId, transactions.getTotalElements());
         return ResponseEntity.ok(transactions);
     }
 
@@ -74,15 +90,17 @@ public class AdminController {
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
             @RequestBody UserIdRequest request) {
 
+        logger.info("💰 Admin requested default wallet balance for userId={}", request.getUserId());
+
         validateAdmin(authHeader);
 
         Long userId = request.getUserId();
         userClient.getUserById(userId, authHeader);
 
-        WalletBalanceResponse response =
-                walletService.getWalletByUserIdAndWalletName(userId, "Default");
-
+        WalletBalanceResponse response = walletService.getWalletByUserIdAndWalletName(userId, "Default");
         response.setMessage("Balance fetched successfully for userId=" + userId);
+
+        logger.info("✅ Default wallet balance fetched successfully for userId={}, balance={}", userId, response.getBalance());
         return ResponseEntity.ok(response);
     }
 
@@ -92,12 +110,16 @@ public class AdminController {
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
             @RequestBody UserIdRequest request) {
 
+        logger.info("🧾 Admin requested all wallets for userId={}", request.getUserId());
+
         validateAdmin(authHeader);
 
         Long userId = request.getUserId();
         userClient.getUserById(userId, authHeader);
 
         List<WalletBalanceResponse> wallets = walletService.getAllWalletsByUserId(userId);
+        logger.info("✅ {} wallets fetched successfully for userId={}", wallets.size(), userId);
+
         return ResponseEntity.ok(wallets);
     }
 
@@ -107,6 +129,9 @@ public class AdminController {
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
             @RequestBody WalletNameRequest request) {
 
+        logger.info("💳 Admin requested balance for wallet='{}' (userId={})",
+                request.getWalletName(), request.getUserId());
+
         validateAdmin(authHeader);
 
         Long userId = request.getUserId();
@@ -115,6 +140,9 @@ public class AdminController {
         userClient.getUserById(userId, authHeader);
         WalletBalanceResponse wallet = walletService.getWalletByUserIdAndWalletName(userId, walletName);
         wallet.setMessage("Balance fetched successfully for wallet '" + walletName + "'");
+
+        logger.info("✅ Wallet balance fetched: userId={}, wallet='{}', balance={}",
+                userId, walletName, wallet.getBalance());
         return ResponseEntity.ok(wallet);
     }
 
@@ -124,6 +152,9 @@ public class AdminController {
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
             @RequestBody WalletTransactionRequest request) {
 
+        logger.info("📄 Admin requested transaction history for wallet='{}' (userId={}, page={}, size={})",
+                request.getWalletName(), request.getUserId(), request.getPage(), request.getSize());
+
         validateAdmin(authHeader);
 
         Long userId = request.getUserId();
@@ -132,19 +163,23 @@ public class AdminController {
         int size = request.getSize();
 
         userClient.getUserById(userId, authHeader);
-
         Page<TransactionDTO> transactions =
                 walletService.getTransactionsByWalletName(userId, walletName, page, size);
 
+        logger.info("✅ Wallet transaction history fetched: userId={}, wallet='{}', records={}",
+                userId, walletName, transactions.getTotalElements());
+
         return ResponseEntity.ok(transactions);
     }
-
 
     // ✅ Blacklist Wallet
     @PutMapping("/wallets/blacklist")
     public ResponseEntity<WalletBlacklistResponse> blacklistWallet(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
             @RequestBody WalletNameRequest request) {
+
+        logger.warn("⚠️ Admin attempting to blacklist wallet='{}' for userId={}",
+                request.getWalletName(), request.getUserId());
 
         validateAdmin(authHeader);
 
@@ -166,18 +201,24 @@ public class AdminController {
                         : "Wallet blacklisted. User is NOT blacklisted because other wallets are active."
         );
 
+        logger.info("✅ Wallet '{}' blacklisted successfully for userId={}. All wallets blacklisted? {}",
+                walletName, userId, allBlacklisted);
+
         return ResponseEntity.ok(response);
     }
 
+    // ✅ Unblacklist All Wallets
     @PutMapping("/wallets/unblacklist")
     public ResponseEntity<walletUnblacklistResponse> unblacklistUserWallets(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
             @RequestBody UserIdRequest request) {
 
+        logger.warn("♻️ Admin attempting to unblacklist all wallets for userId={}", request.getUserId());
+
         validateAdmin(authHeader);
 
         Long userId = request.getUserId();
-        userClient.getUserById(userId, authHeader); // ensure user exists
+        userClient.getUserById(userId, authHeader);
 
         int walletCount = walletService.unblacklistAllWallets(userId, authHeader);
 
@@ -187,7 +228,7 @@ public class AdminController {
                 "User and all wallets unblocked successfully"
         );
 
+        logger.info("✅ Successfully unblacklisted {} wallets for userId={}", walletCount, userId);
         return ResponseEntity.ok(response);
     }
-
 }

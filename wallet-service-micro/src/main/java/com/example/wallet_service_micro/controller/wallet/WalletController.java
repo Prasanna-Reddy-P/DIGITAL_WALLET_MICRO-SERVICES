@@ -56,47 +56,51 @@ public class WalletController {
             @RequestBody WalletNameRequest request) {
 
         String walletName = request.getWalletName();
-        logger.info("Fetching balance for wallet: {}", walletName);
+        logger.info("💰 Request received: Fetching balance for wallet='{}'", walletName);
 
         UserDTO user = userClient.getUserFromToken(authHeader);
+        logger.debug("🔑 Authenticated user: id={}, name={}, email={}", user.getId(), user.getName(), user.getEmail());
 
         Wallet wallet = walletManagementService.getExistingWallet(user, walletName);
         WalletBalanceResponse response = walletService.toWalletBalanceResponse(wallet);
         response.setMessage("Balance fetched successfully for wallet '" + walletName + "'");
 
+        logger.info("✅ Wallet balance fetched for userId={}, wallet='{}', balance={}",
+                user.getId(), walletName, response.getBalance());
+
         return ResponseEntity.ok(response);
     }
 
     // --------------------------------------------------------------------
-    // ✅ Get all transactions
+    // ✅ Get transactions for specific wallet of logged-in user
     // --------------------------------------------------------------------
-    // --------------------------------------------------------------------
-// ✅ Get transactions for specific wallet of logged-in user
-// --------------------------------------------------------------------
     @PostMapping("/transactions")
     public ResponseEntity<Page<TransactionDTO>> getTransactions(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
             @RequestBody WalletTransactionRequest request) {
 
         UserDTO user = userClient.getUserFromToken(authHeader);
+        logger.info("📜 User requested transaction history: userId={}, wallet='{}', page={}, size={}",
+                user.getId(), request.getWalletName(), request.getPage(), request.getSize());
 
         String walletName = request.getWalletName();
         int page = request.getPage();
         int size = request.getSize();
 
         if (walletName == null || walletName.isBlank()) {
+            logger.warn("⚠️ Missing walletName in transaction history request from userId={}", user.getId());
             throw new IllegalArgumentException("walletName is required");
         }
 
-        // Ensure wallet exists for this user
         walletManagementService.getExistingWallet(user, walletName);
 
         Page<TransactionDTO> tx = walletService.getTransactionsByWallet(user, walletName, page, size);
 
+        logger.info("✅ {} transactions fetched for userId={}, wallet='{}'",
+                tx.getTotalElements(), user.getId(), walletName);
+
         return ResponseEntity.ok(tx);
     }
-
-
 
     // --------------------------------------------------------------------
     // ✅ Load money to wallet
@@ -109,12 +113,18 @@ public class WalletController {
         UserDTO user = userClient.getUserFromToken(authHeader);
         String txnId = UUID.randomUUID().toString();
 
+        logger.info("💵 Load money request: userId={}, wallet='{}', amount={}, txnId={}",
+                user.getId(), request.getWalletName(), request.getAmount(), txnId);
+
         LoadMoneyResponse response = walletService.loadMoney(
                 user,
                 request,
                 txnId,
                 request.getWalletName()
         );
+
+        logger.info("✅ Money loaded successfully: userId={}, wallet='{}', newBalance={}, txnId={}",
+                user.getId(), request.getWalletName(), response.getBalance(), txnId);
 
         return ResponseEntity.ok(response);
     }
@@ -130,6 +140,9 @@ public class WalletController {
         UserDTO sender = userClient.getUserFromToken(authHeader);
         String transactionId = UUID.randomUUID().toString();
 
+        logger.info("💸 Transfer initiated: senderId={}, receiverId={}, amount={}, senderWallet='{}', txnId={}",
+                sender.getId(), request.getReceiverId(), request.getAmount(), request.getSenderWalletName(), transactionId);
+
         TransferResponse response = walletService.transferAmount(
                 sender,
                 request.getReceiverId(),
@@ -138,6 +151,9 @@ public class WalletController {
                 request.getSenderWalletName(),
                 authHeader
         );
+
+        logger.info("✅ Transfer completed: senderId={}, receiverId={}, amount={}, txnId={}, status={}",
+                sender.getId(), request.getReceiverId(), request.getAmount(), transactionId, response.getMessage());
 
         return ResponseEntity.ok(response);
     }
@@ -150,9 +166,11 @@ public class WalletController {
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader) {
 
         UserDTO user = userClient.getUserFromToken(authHeader);
+        logger.info("📂 Fetching all wallets for userId={}, email={}", user.getId(), user.getEmail());
 
         List<WalletBalanceResponse> wallets = walletService.getAllWalletsForUserDTO(user);
 
+        logger.info("✅ {} wallets fetched for userId={}", wallets.size(), user.getId());
         return ResponseEntity.ok(wallets);
     }
 
@@ -167,6 +185,9 @@ public class WalletController {
         UserDTO user = userClient.getUserFromToken(authHeader);
         String transactionId = UUID.randomUUID().toString();
 
+        logger.info("🔄 Internal transfer initiated: userId={}, from='{}', to='{}', amount={}, txnId={}",
+                user.getId(), request.getSenderWalletName(), request.getReceiverWalletName(), request.getAmount(), transactionId);
+
         UserInternalTransferResponse response = walletService.transferWithinUserWallets(
                 user,
                 request.getSenderWalletName(),
@@ -174,6 +195,9 @@ public class WalletController {
                 request.getAmount(),
                 transactionId
         );
+
+        logger.info("✅ Internal transfer successful: userId={}, from='{}', to='{}', amount={}, txnId={}",
+                user.getId(), request.getSenderWalletName(), request.getReceiverWalletName(), request.getAmount(), transactionId);
 
         return ResponseEntity.ok(response);
     }
@@ -187,19 +211,19 @@ public class WalletController {
             @RequestBody CreateWalletRequest request) {
 
         UserDTO user = userClient.getUserFromToken(authHeader);
+        logger.info("🆕 Create wallet request: userId={}, requestedName='{}'", user.getId(), request.getWalletName());
 
-        // ✅ Validate wallet name before calling service
         if (request.getWalletName() == null || request.getWalletName().trim().isEmpty()) {
+            logger.warn("⚠️ Wallet creation failed: empty wallet name provided by userId={}", user.getId());
             CreateWalletResponse errorResp = new CreateWalletResponse();
             errorResp.setMessage("Wallet name cannot be empty");
             return ResponseEntity.badRequest().body(errorResp);
         }
 
-        // Call service only if valid
         CreateWalletResponse response =
                 walletManagementService.createWallet(user, request.getWalletName());
 
+        logger.info("✅ Wallet created successfully: userId={}, wallet='{}'", user.getId(), request.getWalletName());
         return ResponseEntity.ok(response);
     }
-
 }
