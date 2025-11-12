@@ -1,5 +1,6 @@
 package com.example.user_service_micro.controller.admin;
 
+import com.example.user_service_micro.dto.UserIdRequest;
 import com.example.user_service_micro.dto.user.UserDTO;
 import com.example.user_service_micro.model.user.User;
 import com.example.user_service_micro.dto.user.UserInfoResponse;
@@ -49,33 +50,30 @@ public class AdminController {
         return ResponseEntity.ok(user);
     }
 
-    // ✅ NEW ENDPOINT (Admin: Blacklist a user)
-    @PostMapping("/{userId}/blacklist")
+    @PutMapping("/blacklist")
     public ResponseEntity<String> blacklistUser(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
-            @PathVariable Long userId) {
+            @RequestBody UserIdRequest request) {
 
         User admin = userService.getUserFromToken(authHeader);
         if (admin == null) throw new UnauthorizedException("Unauthorized access");
         if (!"ADMIN".equals(admin.getRole())) throw new ForbiddenException("Admins only");
 
-        userService.blacklistUser(userId);
-
+        userService.blacklistUser(request.getUserId());
         return ResponseEntity.ok("User blacklisted successfully");
     }
 
-    @PostMapping("/{userId}/unblacklist")
+    @PutMapping("/unblacklist")
     public ResponseEntity<String> unblacklistUser(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
-            @PathVariable Long userId) {
+            @RequestBody UserIdRequest request) {
 
         User admin = userService.getUserFromToken(authHeader);
         if (admin == null) throw new UnauthorizedException("Unauthorized access");
         if (!"ADMIN".equals(admin.getRole())) throw new ForbiddenException("Admins only");
 
-        userService.unblacklistUser(userId);
-
-        return ResponseEntity.ok("User unblocked successfully");
+        userService.unblacklistUser(request.getUserId());
+        return ResponseEntity.ok("User unblacklisted successfully");
     }
 
 }

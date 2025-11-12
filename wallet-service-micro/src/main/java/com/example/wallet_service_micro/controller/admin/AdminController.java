@@ -2,15 +2,18 @@ package com.example.wallet_service_micro.controller.admin;
 
 import com.example.wallet_service_micro.client.user.UserClient;
 import com.example.wallet_service_micro.dto.BlackList.WalletBlacklistResponse;
+import com.example.wallet_service_micro.dto.BlackList.walletUnblacklistResponse;
+import com.example.wallet_service_micro.dto.userRequest.UserIdRequest;
+import com.example.wallet_service_micro.dto.userRequest.UserTransactionRequest;
+import com.example.wallet_service_micro.dto.walletRequest.WalletNameRequest;
+import com.example.wallet_service_micro.dto.walletRequest.WalletTransactionRequest;
 import com.example.wallet_service_micro.dto.transactions.TransactionDTO;
 import com.example.wallet_service_micro.dto.user.UserDTO;
-import com.example.wallet_service_micro.dto.user.UserInfoResponse;
 import com.example.wallet_service_micro.dto.wallet.WalletBalanceResponse;
 import com.example.wallet_service_micro.exception.auth.ForbiddenException;
 import com.example.wallet_service_micro.exception.auth.UnauthorizedException;
 import com.example.wallet_service_micro.exception.user.UserNotFoundException;
 import com.example.wallet_service_micro.service.wallet.WalletService;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
@@ -46,140 +49,111 @@ public class AdminController {
         return admin;
     }
 
-    // ✅ Get All Users (via user-service)
-    @GetMapping("/users")
-    public ResponseEntity<List<UserDTO>> getAllUsers(
-            @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader) {
-
-        validateAdmin(authHeader);
-        List<UserDTO> users = userClient.getAllUsers(authHeader);
-
-        return ResponseEntity.ok(users);
-    }
-
-    // ✅ Get User Info + Default Wallet Balance
-    @GetMapping("/users/{userId}")
-    public ResponseEntity<UserInfoResponse> getUserById(
-            @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
-            @PathVariable Long userId) {
-
-        validateAdmin(authHeader);
-
-        UserDTO user = userClient.getUserById(userId, authHeader);
-        if (user == null) throw new UserNotFoundException("User not found with ID " + userId);
-
-        WalletBalanceResponse wallet = walletService.getWalletByUserIdAndWalletName(userId, "Default");
-
-        UserInfoResponse response =
-                new UserInfoResponse(user.getName(), user.getEmail(), user.getRole(), wallet.getBalance());
-
-        return ResponseEntity.ok(response);
-    }
-
     // ✅ Get User Transaction History
-    @GetMapping("/users/{userId}/transactions")
+    @PostMapping("/transactions")
     public ResponseEntity<Page<TransactionDTO>> getUserTransactions(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
-            @PathVariable Long userId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestBody UserTransactionRequest request) {
 
         validateAdmin(authHeader);
+
+        Long userId = request.getUserId();
+        int page = request.getPage();
+        int size = request.getSize();
 
         UserDTO user = userClient.getUserById(userId, authHeader);
         if (user == null) throw new UserNotFoundException("User not found with ID " + userId);
 
         Page<TransactionDTO> transactions = walletService.getTransactions(user, page, size);
-
         return ResponseEntity.ok(transactions);
     }
 
-    // ✅ Get Default Wallet (DTO)
-    @GetMapping("/users/{userId}/wallet")
-    public ResponseEntity<WalletBalanceResponse> getWalletByUserId(
-            @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
-            @PathVariable Long userId) {
-
-        validateAdmin(authHeader);
-        userClient.getUserById(userId, authHeader);
-
-        WalletBalanceResponse wallet = walletService.getWalletByUserIdAndWalletName(userId, "Default");
-        return ResponseEntity.ok(wallet);
-    }
-
     // ✅ Get Default Wallet Balance
-    @GetMapping("/users/{userId}/balance")
+    @PostMapping("/balance")
     public ResponseEntity<WalletBalanceResponse> getBalanceByUserId(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
-            @PathVariable Long userId) {
+            @RequestBody UserIdRequest request) {
 
         validateAdmin(authHeader);
 
+        Long userId = request.getUserId();
         userClient.getUserById(userId, authHeader);
-        WalletBalanceResponse response = walletService.getWalletByUserIdAndWalletName(userId, "Default");
+
+        WalletBalanceResponse response =
+                walletService.getWalletByUserIdAndWalletName(userId, "Default");
 
         response.setMessage("Balance fetched successfully for userId=" + userId);
         return ResponseEntity.ok(response);
     }
 
-    // ✅ Get All Wallets for a User (DTO)
-    @GetMapping("/users/{userId}/wallets")
+    // ✅ Get All Wallets for a User
+    @PostMapping("/wallets")
     public ResponseEntity<List<WalletBalanceResponse>> getAllWalletsByUserId(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
-            @PathVariable Long userId) {
+            @RequestBody UserIdRequest request) {
 
         validateAdmin(authHeader);
+
+        Long userId = request.getUserId();
         userClient.getUserById(userId, authHeader);
 
         List<WalletBalanceResponse> wallets = walletService.getAllWalletsByUserId(userId);
-
         return ResponseEntity.ok(wallets);
     }
 
-    // ✅ Get Specific Wallet by Name (DTO)
-    @GetMapping("/users/{userId}/wallets/by-name/{walletName}")
-    public ResponseEntity<WalletBalanceResponse> getWalletByUserIdAndWalletName(
-            @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
-            @PathVariable Long userId,
-            @PathVariable String walletName) {
-
-        validateAdmin(authHeader);
-        userClient.getUserById(userId, authHeader);
-
-        WalletBalanceResponse wallet = walletService.getWalletByUserIdAndWalletName(userId, walletName);
-
-        return ResponseEntity.ok(wallet);
-    }
-
-    // ✅ Get Balance of Specific Wallet (DTO)
-    @GetMapping("/users/{userId}/wallets/by-name/{walletName}/balance")
+    // ✅ Get Balance of Specific Wallet
+    @PostMapping("/wallets/by-name/balance")
     public ResponseEntity<WalletBalanceResponse> getWalletBalanceByUserIdAndWalletName(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
-            @PathVariable Long userId,
-            @PathVariable String walletName) {
+            @RequestBody WalletNameRequest request) {
 
         validateAdmin(authHeader);
-        userClient.getUserById(userId, authHeader);
 
+        Long userId = request.getUserId();
+        String walletName = request.getWalletName();
+
+        userClient.getUserById(userId, authHeader);
         WalletBalanceResponse wallet = walletService.getWalletByUserIdAndWalletName(userId, walletName);
         wallet.setMessage("Balance fetched successfully for wallet '" + walletName + "'");
-
         return ResponseEntity.ok(wallet);
     }
 
-    @PutMapping("/users/{userId}/wallets/{walletName}/blacklist")
-    public ResponseEntity<WalletBlacklistResponse> blacklistWallet(
+    // ✅ Get Transaction History of Specific Wallet
+    @PostMapping("/wallets/transactions")
+    public ResponseEntity<Page<TransactionDTO>> getWalletTransactionHistory(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
-            @PathVariable Long userId,
-            @PathVariable String walletName) {
+            @RequestBody WalletTransactionRequest request) {
 
         validateAdmin(authHeader);
 
+        Long userId = request.getUserId();
+        String walletName = request.getWalletName();
+        int page = request.getPage();
+        int size = request.getSize();
+
         userClient.getUserById(userId, authHeader);
 
+        Page<TransactionDTO> transactions =
+                walletService.getTransactionsByWalletName(userId, walletName, page, size);
+
+        return ResponseEntity.ok(transactions);
+    }
+
+
+    // ✅ Blacklist Wallet
+    @PutMapping("/wallets/blacklist")
+    public ResponseEntity<WalletBlacklistResponse> blacklistWallet(
+            @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
+            @RequestBody WalletNameRequest request) {
+
+        validateAdmin(authHeader);
+
+        Long userId = request.getUserId();
+        String walletName = request.getWalletName();
+
+        userClient.getUserById(userId, authHeader);
         walletService.blacklistWalletByName(userId, walletName, authHeader);
 
-        // ✅ Now fetch wallet states to determine userBlacklisted status
         boolean allBlacklisted = walletService.areAllWalletsBlacklisted(userId);
 
         WalletBlacklistResponse response = new WalletBlacklistResponse(
@@ -195,18 +169,25 @@ public class AdminController {
         return ResponseEntity.ok(response);
     }
 
-
-    @PutMapping("/users/{userId}/wallets/unblacklist")
-    public ResponseEntity<String> unblacklistUserWallets(
+    @PutMapping("/wallets/unblacklist")
+    public ResponseEntity<walletUnblacklistResponse> unblacklistUserWallets(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
-            @PathVariable Long userId) {
+            @RequestBody UserIdRequest request) {
 
         validateAdmin(authHeader);
+
+        Long userId = request.getUserId();
         userClient.getUserById(userId, authHeader); // ensure user exists
 
-        walletService.unblacklistAllWallets(userId, authHeader);
+        int walletCount = walletService.unblacklistAllWallets(userId, authHeader);
 
-        return ResponseEntity.ok("User and all wallets unblocked successfully");
+        walletUnblacklistResponse response = new walletUnblacklistResponse(
+                userId,
+                walletCount,
+                "User and all wallets unblocked successfully"
+        );
+
+        return ResponseEntity.ok(response);
     }
 
 }

@@ -3,6 +3,7 @@ package com.example.wallet_service_micro.repository.wallet;
 import com.example.wallet_service_micro.model.wallet.Wallet;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -14,8 +15,13 @@ public interface WalletRepository extends JpaRepository<Wallet, Long> {
     // ✅ Return all wallets for a user
     List<Wallet> findByUserId(Long userId);
 
-    // ✅ Optional helper to fetch wallet by userId + walletName
+    @Query("""
+       SELECT w FROM Wallet w 
+       WHERE w.userId = :userId 
+       AND LOWER(TRIM(w.walletName)) = LOWER(TRIM(:walletName))
+       """)
     Optional<Wallet> findByUserIdAndWalletName(Long userId, String walletName);
+
 
     // ✅ Fetch wallet by walletId + userId
     Optional<Wallet> findByIdAndUserId(Long id, Long userId);

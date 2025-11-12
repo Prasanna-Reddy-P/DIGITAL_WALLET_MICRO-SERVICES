@@ -42,11 +42,10 @@ public class WalletManagementService {
 
 
     // ✅ Fetch wallet ONLY if it exists
-    public Wallet getExistingWallet(UserDTO user, String walletName) {
-
+    public Wallet getExistingWallet(UserDTO user, String walletName) {// normalize input
         return walletRepository.findByUserIdAndWalletName(user.getId(), walletName)
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "Wallet '" + walletName + "' does not exist. Create it first."
+                        "Wallet '" + walletName.trim() + "' does not exist. Create it first."
                 ));
     }
 }

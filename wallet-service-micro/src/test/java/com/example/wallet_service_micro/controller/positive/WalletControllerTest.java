@@ -13,6 +13,8 @@ import com.example.wallet_service_micro.dto.user.UserDTO;
 import com.example.wallet_service_micro.dto.wallet.WalletBalanceResponse;
 import com.example.wallet_service_micro.dto.walletCreation.CreateWalletRequest;
 import com.example.wallet_service_micro.dto.walletCreation.CreateWalletResponse;
+import com.example.wallet_service_micro.dto.walletRequest.WalletNameRequest;
+import com.example.wallet_service_micro.dto.walletRequest.WalletTransactionRequest;
 import com.example.wallet_service_micro.model.wallet.Wallet;
 import com.example.wallet_service_micro.service.factory.WalletManagementService;
 import com.example.wallet_service_micro.service.wallet.WalletService;
@@ -77,13 +79,18 @@ class WalletControllerTest {
         when(walletManagementService.getExistingWallet(mockUser, walletName)).thenReturn(wallet);
         when(walletService.toWalletBalanceResponse(wallet)).thenReturn(response);
 
+        // ✅ Create the DTO
+        WalletNameRequest request = new WalletNameRequest();
+        request.setWalletName(walletName);
+
         ResponseEntity<WalletBalanceResponse> result =
-                walletController.getBalance(token, walletName);
+                walletController.getBalance(token, request);
 
         log.info("Balance retrieved: {}", result.getBody().getBalance());
         assertEquals(500.0, result.getBody().getBalance());
         verify(walletManagementService).getExistingWallet(mockUser, walletName);
     }
+
 
     @Test
     void testGetTransactions() {
@@ -103,12 +110,19 @@ class WalletControllerTest {
         when(walletService.getTransactionsByWallet(mockUser, walletName, 0, 10))
                 .thenReturn(page);
 
+        // ✅ Create the DTO
+        WalletTransactionRequest request = new WalletTransactionRequest();
+        request.setWalletName(walletName);
+        request.setPage(0);
+        request.setSize(10);
+
         ResponseEntity<Page<TransactionDTO>> result =
-                walletController.getTransactions(token, walletName, 0, 10);
+                walletController.getTransactions(token, request);
 
         log.info("Transactions retrieved: {}", result.getBody().getTotalElements());
         assertEquals(1, result.getBody().getTotalElements());
     }
+
 
     @Test
     void testLoadMoney() {

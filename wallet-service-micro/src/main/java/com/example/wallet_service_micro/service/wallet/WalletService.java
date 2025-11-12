@@ -410,18 +410,31 @@ public class WalletService {
 
 
     @Transactional
-    public void unblacklistAllWallets(Long userId, String authHeader) {
+    public int unblacklistAllWallets(Long userId, String authHeader) {
         List<Wallet> wallets = walletRepository.findByUserId(userId);
-        if (wallets.isEmpty()) return;
+        if (wallets.isEmpty()) return 0;
 
         wallets.forEach(wallet -> wallet.setBlacklisted(false));
         walletRepository.saveAll(wallets);
 
-        // Optionally: unblacklist user in user-service if needed
+        // Also unblacklist user in user-service if needed
         userClient.unblacklistUser(userId, authHeader);
 
-        logger.info("✅ All wallets for user {} are UNBLACKLISTED → User also UNBLACKLISTED", userId);
+        logger.info("✅ All wallets unblocked for userId={}", userId);
+        return wallets.size();
     }
+
+
+
+    public Page<TransactionDTO> getTransactionsByWalletName(Long userId, String walletName, int page, int size) {
+        Wallet wallet = walletRepository.findByUserIdAndWalletName(userId, walletName)
+                .orElseThrow(() -> new IllegalArgumentException("Wallet not found: " + walletName));
+
+        return transactionRepository.findByWalletId(wallet.getId(), PageRequest.of(page, size))
+                .map(transaction -> transactionMapper.toDTO(transaction));
+
+    }
+
 
 
 }

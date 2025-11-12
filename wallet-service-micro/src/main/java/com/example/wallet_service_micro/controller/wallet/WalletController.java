@@ -1,6 +1,8 @@
 package com.example.wallet_service_micro.controller.wallet;
 
 import com.example.wallet_service_micro.client.user.UserClient;
+import com.example.wallet_service_micro.dto.walletRequest.WalletNameRequest;
+import com.example.wallet_service_micro.dto.walletRequest.WalletTransactionRequest;
 import com.example.wallet_service_micro.dto.loadMoney.LoadMoneyRequest;
 import com.example.wallet_service_micro.dto.loadMoney.LoadMoneyResponse;
 import com.example.wallet_service_micro.dto.selfTransfer.UserInternalTransferRequest;
@@ -48,19 +50,19 @@ public class WalletController {
     // --------------------------------------------------------------------
     // ✅ Get balance of a specific wallet (MUST already exist)
     // --------------------------------------------------------------------
-    @GetMapping("/balance")
+    @PostMapping("/balance")
     public ResponseEntity<WalletBalanceResponse> getBalance(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
-            @RequestParam String walletName) {
+            @RequestBody WalletNameRequest request) {
 
+        String walletName = request.getWalletName();
         logger.info("Fetching balance for wallet: {}", walletName);
 
         UserDTO user = userClient.getUserFromToken(authHeader);
 
-        // ✅ Ensure wallet exists (do NOT auto-create)
         Wallet wallet = walletManagementService.getExistingWallet(user, walletName);
-
         WalletBalanceResponse response = walletService.toWalletBalanceResponse(wallet);
+        response.setMessage("Balance fetched successfully for wallet '" + walletName + "'");
 
         return ResponseEntity.ok(response);
     }
@@ -71,23 +73,25 @@ public class WalletController {
     // --------------------------------------------------------------------
 // ✅ Get transactions for specific wallet of logged-in user
 // --------------------------------------------------------------------
-    @GetMapping("/transactions")
+    @PostMapping("/transactions")
     public ResponseEntity<Page<TransactionDTO>> getTransactions(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
-            @RequestParam(required = false) String walletName,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestBody WalletTransactionRequest request) {
 
         UserDTO user = userClient.getUserFromToken(authHeader);
 
-        if (walletName == null)
-            throw new IllegalArgumentException("walletName is required");
+        String walletName = request.getWalletName();
+        int page = request.getPage();
+        int size = request.getSize();
 
-        // ✅ verify wallet exists
+        if (walletName == null || walletName.isBlank()) {
+            throw new IllegalArgumentException("walletName is required");
+        }
+
+        // Ensure wallet exists for this user
         walletManagementService.getExistingWallet(user, walletName);
 
-        Page<TransactionDTO> tx =
-                walletService.getTransactionsByWallet(user, walletName, page, size);
+        Page<TransactionDTO> tx = walletService.getTransactionsByWallet(user, walletName, page, size);
 
         return ResponseEntity.ok(tx);
     }

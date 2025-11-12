@@ -60,4 +60,8 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             @Param("walletName") String walletName,
             Pageable pageable
     );
+
+
+    // ✅ Finds transactions belonging to a particular wallet
+    Page<Transaction> findByWalletId(Long walletId, Pageable pageable);
 }
