@@ -1,5 +1,6 @@
     package com.example.user_service_micro.config.jwt; // (or user_service_micro.config)
 
+    import com.example.user_service_micro.exception.TokenExpiredException;
     import io.jsonwebtoken.*;
     import io.jsonwebtoken.Claims;
     import io.jsonwebtoken.Jwts;
@@ -66,6 +67,9 @@ so you can reuse it in both generateToken() and validateToken() methods.
             try {
                 Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
                 return true;
+            } catch (ExpiredJwtException e) {
+                // ✅ Token is expired → throw custom exception
+                throw new TokenExpiredException("JWT token has expired");
             } catch (JwtException e) {
                 return false;
             }

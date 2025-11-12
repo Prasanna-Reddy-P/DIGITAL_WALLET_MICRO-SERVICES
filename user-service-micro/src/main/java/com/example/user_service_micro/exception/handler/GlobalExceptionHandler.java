@@ -1,6 +1,7 @@
 package com.example.user_service_micro.exception.handler;
 
 import com.example.user_service_micro.dto.risk.ErrorResponse;
+import com.example.user_service_micro.exception.TokenExpiredException;
 import com.example.user_service_micro.exception.auth.ForbiddenException;
 import com.example.user_service_micro.exception.auth.InvalidCredentialsException;
 import com.example.user_service_micro.exception.auth.UnauthorizedException;
@@ -89,6 +90,19 @@ public class GlobalExceptionHandler {
                                                                 HttpServletRequest request) {
         return buildError(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_SERVER_ERROR",
                 "Unexpected error: " + ex.getMessage(), request);
+    }
+
+    @ExceptionHandler(TokenExpiredException.class)
+    public ResponseEntity<?> handleTokenExpired(TokenExpiredException ex) {
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("status", 401);
+        body.put("error", "Unauthorized");
+        body.put("message", ex.getMessage());
+        body.put("path", "/auth/validate"); // optional → you can override with RequestContextHolder
+
+        return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
     }
 
     // --------------------------------------------------------------------

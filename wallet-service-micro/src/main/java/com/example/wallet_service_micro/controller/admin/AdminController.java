@@ -189,7 +189,7 @@ public class AdminController {
                 allBlacklisted,
                 allBlacklisted
                         ? "Wallet blacklisted. User also blacklisted because all wallets are blacklisted."
-                        : "Wallet blacklisted. User NOT blacklisted because other wallets are active."
+                        : "Wallet blacklisted. User is NOT blacklisted because other wallets are active."
         );
 
         return ResponseEntity.ok(response);

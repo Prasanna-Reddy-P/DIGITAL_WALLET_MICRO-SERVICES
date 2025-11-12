@@ -95,10 +95,6 @@ JwtFilter runs before every secured request, this class runs once per HTTP reque
         String token = authHeader.substring(7);
 
         // ✅ Validate token
-        if (!jwtUtil.validateToken(token)) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // 401 UnAuthorized
-            return;
-        }
 
         // ✅ Fetch user and set authentication
         User user = userRepository.findByEmail(jwtUtil.getEmailFromToken(token)).orElse(null);

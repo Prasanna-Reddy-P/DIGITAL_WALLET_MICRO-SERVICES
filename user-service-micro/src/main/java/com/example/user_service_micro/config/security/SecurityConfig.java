@@ -12,12 +12,17 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 
+import com.example.user_service_micro.config.JwtAuthEntryPoint;
+
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
 
     @Autowired // Annotation used to perform dependency injection.
     private JwtFilter jwtFilter;
+
+    @Autowired
+    private JwtAuthEntryPoint jwtAuthEntryPoint;
 
     @Bean // indicates that this method returns a bean.
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -38,6 +43,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/wallet/admin/**").hasRole("ADMIN")
                         // All others need authentication
                         .anyRequest().authenticated()
+                )
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(jwtAuthEntryPoint) // ✅ IMPORTANT
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
