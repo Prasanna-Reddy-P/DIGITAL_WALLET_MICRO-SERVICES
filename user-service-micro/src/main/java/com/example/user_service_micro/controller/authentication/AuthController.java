@@ -83,7 +83,8 @@ public class AuthController {
         response.put("email", savedUser.getEmail());
         response.put("token", token);
 
-        return ResponseEntity.ok(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+
     }
 
 
@@ -121,7 +122,7 @@ public class AuthController {
                 token
         );
 
-        return ResponseEntity.ok(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     // login

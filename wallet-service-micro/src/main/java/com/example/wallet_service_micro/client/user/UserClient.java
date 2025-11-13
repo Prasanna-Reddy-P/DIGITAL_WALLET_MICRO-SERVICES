@@ -14,12 +14,12 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import java.util.List;
 import java.util.Map;
 
-@Component
+@Component // Indicates spring to create an instance of this class, so that it can create and manage beans.
 public class UserClient {
 
-    private final WebClient webClient;
-    private final String userServiceUrl;
-    private final ObjectMapper objectMapper;
+    private final WebClient webClient; // used to make API calls
+    private final String userServiceUrl; // base URL of the user-service (injected from application.yml)
+    private final ObjectMapper objectMapper; // used to deserialize JSON responses (especially for errors)
 
     public UserClient(WebClient webClient, @Value("${user.service.url}") String userServiceUrl) {
         this.webClient = webClient;
@@ -31,15 +31,15 @@ public class UserClient {
     public UserDTO getUserById(Long userId, String authHeader) {
         String url = userServiceUrl + "/api/users/" + userId;
         try {
-            return webClient.get()
-                    .uri(url)
+            return webClient.get() // Initiates an HTTP GET request using the WebClient instance.
+                    .uri(url) // Specifies the target URL for the request.
                     .header(HttpHeaders.AUTHORIZATION, authHeader)
-                    .retrieve()
-                    .bodyToMono(UserDTO.class)
-                    .block();
-        } catch (WebClientResponseException ex) {
+                    .retrieve() // Executes the request and retrieves the response.
+                    .bodyToMono(UserDTO.class) // Instructs WebClient to convert the response body into a Mono that emits a single UserDTO object
+                    .block(); // Wait for the response (blocking, not reactive), This means the program execution will pause at this line until the HTTP request and response processing are finished.
+        } catch (WebClientResponseException ex) { // Here we catch 401, 403
             throw new RemoteUserServiceException(extractMessage(ex));
-        } catch (Exception ex) {
+        } catch (Exception ex) { // here 500, 502(Bad-gateway, Like no user exist with id=50)
             throw new RemoteUserServiceException("User-service is unavailable: " + ex.getMessage());
         }
     }
@@ -77,18 +77,17 @@ public class UserClient {
         }
     }
 
-    // ✅ New: Send userId in body (matches AdminController refactor)
     public void blacklistUser(Long userId, String authHeader) {
         String url = userServiceUrl + "/api/admin/users/blacklist";
         try {
-            webClient.put()
+            webClient.put() // Initiating a PUT request.
                     .uri(url)
                     .header(HttpHeaders.AUTHORIZATION, authHeader)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .bodyValue(new UserIdRequest(userId))
-                    .retrieve()
-                    .bodyToMono(Void.class)
-                    .block();
+                    .contentType(MediaType.APPLICATION_JSON) // Here we are explicitly mentioning to set the content type to JSON.
+                    .bodyValue(new UserIdRequest(userId)) // Here we are setting up th request body, that is userId, bodyValue() converts the object into JSON automatically.
+                    .retrieve() // It's responsible to retrieve the response.
+                    .bodyToMono(Void.class)// here we are expecting the void response (that is no content from the server)
+                    .block(); // Blocks the current thread until the request completes, This converts the reactive non-blocking call into a synchronous call
         } catch (WebClientResponseException ex) {
             throw new RemoteUserServiceException(extractMessage(ex));
         } catch (Exception ex) {
@@ -96,14 +95,13 @@ public class UserClient {
         }
     }
 
-    // ✅ New: Send userId in body (matches AdminController refactor)
     public void unblacklistUser(Long userId, String authHeader) {
         String url = userServiceUrl + "/api/admin/users/unblacklist";
         try {
-            webClient.put()
+            webClient.put() // Initiating a PUT request
                     .uri(url)
                     .header(HttpHeaders.AUTHORIZATION, authHeader)
-                    .contentType(MediaType.APPLICATION_JSON)
+                    .contentType(MediaType.APPLICATION_JSON) // Indicates the server that the body is of JSON type.
                     .bodyValue(new UserIdRequest(userId))
                     .retrieve()
                     .bodyToMono(Void.class)
@@ -125,3 +123,11 @@ public class UserClient {
         }
     }
 }
+
+
+/*
+URI vs URL
+
+A URI is a general term for a string of characters used to identify a resource.
+It can identify a resource by its name (URN) or by its location (URL), or both.
+ */

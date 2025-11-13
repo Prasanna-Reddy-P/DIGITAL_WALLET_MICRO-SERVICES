@@ -23,9 +23,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 
@@ -126,7 +128,7 @@ public class WalletController {
         logger.info("✅ Money loaded successfully: userId={}, wallet='{}', newBalance={}, txnId={}",
                 user.getId(), request.getWalletName(), response.getBalance(), txnId);
 
-        return ResponseEntity.ok(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     // --------------------------------------------------------------------
@@ -155,7 +157,7 @@ public class WalletController {
         logger.info("✅ Transfer completed: senderId={}, receiverId={}, amount={}, txnId={}, status={}",
                 sender.getId(), request.getReceiverId(), request.getAmount(), transactionId, response.getMessage());
 
-        return ResponseEntity.ok(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     // --------------------------------------------------------------------
@@ -199,7 +201,7 @@ public class WalletController {
         logger.info("✅ Internal transfer successful: userId={}, from='{}', to='{}', amount={}, txnId={}",
                 user.getId(), request.getSenderWalletName(), request.getReceiverWalletName(), request.getAmount(), transactionId);
 
-        return ResponseEntity.ok(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     // --------------------------------------------------------------------
@@ -224,6 +226,6 @@ public class WalletController {
                 walletManagementService.createWallet(user, request.getWalletName());
 
         logger.info("✅ Wallet created successfully: userId={}, wallet='{}'", user.getId(), request.getWalletName());
-        return ResponseEntity.ok(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }

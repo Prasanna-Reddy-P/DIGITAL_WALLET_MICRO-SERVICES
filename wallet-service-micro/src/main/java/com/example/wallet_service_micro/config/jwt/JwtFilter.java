@@ -17,7 +17,7 @@ import java.io.IOException;
 import java.util.List;
 
 @Component
-public class    JwtFilter extends OncePerRequestFilter {
+public class JwtFilter extends OncePerRequestFilter {
 
     private final UserClient userClient;
 
@@ -26,9 +26,9 @@ public class    JwtFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain)
+    protected void doFilterInternal(HttpServletRequest request, //HttpServletRequest is an interface that represents an HTTP request sent by a client to your server
+                                    HttpServletResponse response, // Represents the HTTP response that your server will send back.
+                                    FilterChain filterChain) // represents sequence of filters that request has to pass before it hits the controller, it can be JWT validation, and authorities check.
             throws ServletException, IOException {
 
         String path = request.getRequestURI();
