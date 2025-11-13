@@ -6,6 +6,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @Configuration
+// here it’s used to configure and provide a WebClient bean
 public class WebClientConfig {
 
     @Bean

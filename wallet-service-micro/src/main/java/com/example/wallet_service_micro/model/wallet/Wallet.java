@@ -16,7 +16,7 @@ public class Wallet {
     private Long userId;
 
     @Column(nullable = false)
-    private String walletName; // new
+    private String walletName;
 
     private Double balance = 0.0;
     private Double dailySpent = 0.0;
@@ -81,7 +81,6 @@ public class Wallet {
         this.walletName = walletName;
     }
 
-    // ✅ Getter & Setter for new field
     public Boolean getBlacklisted() {
         return blacklisted;
     }

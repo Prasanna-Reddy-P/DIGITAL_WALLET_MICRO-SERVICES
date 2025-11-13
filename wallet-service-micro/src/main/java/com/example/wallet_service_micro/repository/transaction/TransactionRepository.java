@@ -25,6 +25,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     // -------------------------------
     // Filter transactions by date range
     // -------------------------------
+    // Custom JPQL query (uses entity field names, not table columns).
     @Query("SELECT t FROM Transaction t " +
             "WHERE t.userId = :userId " +
             "AND t.timestamp BETWEEN :start AND :end " +

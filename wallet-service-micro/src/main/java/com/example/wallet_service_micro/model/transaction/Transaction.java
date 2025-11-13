@@ -34,7 +34,6 @@ public class Transaction {
     @Column(nullable = false)
     private String walletName;
 
-    // Declare these fields only once, after other fields
     private String senderWalletName;
     private String receiverWalletName;
 

@@ -37,11 +37,11 @@ public interface WalletMapper {
     @Mapping(target = "senderWalletName", source = "wallet.walletName")
     @Mapping(target = "senderBalance", source = "wallet.balance")
     @Mapping(target = "senderFrozen", source = "wallet.frozen")
-    @Mapping(target = "receiverWalletName", ignore = true)      // set manually in service
-    @Mapping(target = "receiverBalance", ignore = true)         // set manually in service
-    @Mapping(target = "amountTransferred", ignore = true)       // set manually in service
-    @Mapping(target = "remainingDailyLimit", ignore = true)     // set manually in service
-    @Mapping(target = "message", ignore = true)                 // set manually in service
+    @Mapping(target = "receiverWalletName", ignore = true)
+    @Mapping(target = "receiverBalance", ignore = true)
+    @Mapping(target = "amountTransferred", ignore = true)
+    @Mapping(target = "remainingDailyLimit", ignore = true)
+    @Mapping(target = "message", ignore = true)
     UserInternalTransferResponse toInternalTransferResponse(Wallet wallet);
 
 }
