@@ -1,36 +1,42 @@
 package com.example.wallet_service_micro.dto.transactions;
+
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDateTime;
 
+@Schema(description = "Represents a wallet transaction")
 public class TransactionDTO {
 
+    @Schema(description = "Unique transaction ID", example = "1023")
     private Long id;
+
+    @Schema(description = "Transaction amount", example = "250.75")
     private Double amount;
 
-    // ✅ CREDIT, DEBIT, INTERNAL_TRANSFER
+    @Schema(description = "Type of transaction (CREDIT, DEBIT, INTERNAL_TRANSFER)",
+            example = "CREDIT")
     private String type;
 
-    // ✅ Helps user understand direction of money flow
+    @Schema(description = "Sender wallet name (null for CREDIT)",
+            example = "main_wallet")
     private String senderWalletName;
+
+    @Schema(description = "Receiver wallet name (null for DEBIT)",
+            example = "savings_wallet")
     private String receiverWalletName;
 
-    // ✅ Timestamp
+    @Schema(description = "Timestamp of the transaction",
+            example = "2025-01-14T10:15:30")
     private LocalDateTime timestamp;
 
-    public String getWalletName() {
-        return walletName;
-    }
-
-    public void setWalletName(String walletName) {
-        this.walletName = walletName;
-    }
-
+    @Schema(description = "Wallet involved in the transaction",
+            example = "main_wallet")
     private String walletName;
 
-
-    // ✅ Optional - shows which user initiated the transaction
+    @Schema(description = "Email of user who initiated the transaction",
+            example = "user@example.com")
     private String userEmail;
 
-    // Getters & Setters
+    // ✅ Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -48,6 +54,9 @@ public class TransactionDTO {
 
     public LocalDateTime getTimestamp() { return timestamp; }
     public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }
+
+    public String getWalletName() { return walletName; }
+    public void setWalletName(String walletName) { this.walletName = walletName; }
 
     public String getUserEmail() { return userEmail; }
     public void setUserEmail(String userEmail) { this.userEmail = userEmail; }

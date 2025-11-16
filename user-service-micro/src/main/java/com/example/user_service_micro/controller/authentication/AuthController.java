@@ -9,7 +9,15 @@ import com.example.user_service_micro.exception.auth.InvalidCredentialsException
 import com.example.user_service_micro.exception.user.UserAlreadyExistsException;
 import com.example.user_service_micro.model.user.User;
 import com.example.user_service_micro.repository.user.UserRepository;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+
 import jakarta.validation.Valid;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -23,6 +31,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
+@Tag(name = "Authentication Controller", description = "Handles user signup, admin signup, login, and token validation")
 public class AuthController {
 
     private final UserRepository userRepository;
@@ -35,16 +44,26 @@ public class AuthController {
         this.userRepository = userRepository;
         this.jwtUtil = jwtUtil;
         this.passwordEncoder = new BCryptPasswordEncoder();
-        this.restClient = RestClient.create(); // For inter-service communication
+        this.restClient = RestClient.create();
     }
 
-    // ------------------- USER SIGNUP -------------------
+    // -----------------------------------------------------
+    // USER SIGNUP
+    // -----------------------------------------------------
+    @Operation(
+            summary = "User Signup",
+            description = "Registers a new user and creates a wallet in wallet-service."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "User registered successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid input or user already exists"),
+            @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
     @PostMapping("/signup")
-    public ResponseEntity<?> signup(@Valid @RequestBody SignupRequest signupRequest) {
-        /*
-        @RequestBody - whatever the request we are sending via JSON body, convert it to a
-        java object type SignupRequest.
-         */
+    public ResponseEntity<?> signup(
+            @Parameter(description = "User signup details")
+            @Valid @RequestBody SignupRequest signupRequest
+    ) {
         if (signupRequest.getAge() < 18) {
             return ResponseEntity.badRequest().body("User must be at least 18 years old");
         }
@@ -53,7 +72,6 @@ public class AuthController {
             throw new UserAlreadyExistsException("Email already exists!");
         }
 
-        // Create and populate new User entity
         User newUser = new User();
         newUser.setName(signupRequest.getName());
         newUser.setEmail(signupRequest.getEmail());
@@ -61,10 +79,9 @@ public class AuthController {
         newUser.setAge(signupRequest.getAge());
         newUser.setRole("USER");
 
-        // Save user
         User savedUser = userRepository.save(newUser);
 
-        // Notify wallet-service
+        // Notify wallet service (non-blocking)
         try {
             restClient.post()
                     .uri("http://localhost:8086/api/wallet/create?userId=" + savedUser.getId())
@@ -74,7 +91,6 @@ public class AuthController {
             System.err.println("⚠️ Wallet-service not reachable. Wallet will be created later.");
         }
 
-        // Generate JWT token
         String token = jwtUtil.generateToken(savedUser.getEmail());
 
         Map<String, Object> response = new HashMap<>();
@@ -84,14 +100,26 @@ public class AuthController {
         response.put("token", token);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
-
     }
 
-
-    // ------------------- ADMIN SIGNUP -------------------
+    // -----------------------------------------------------
+    // ADMIN SIGNUP
+    // -----------------------------------------------------
+    @Operation(
+            summary = "Admin Signup",
+            description = "Registers a new administrator using a secret admin key."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Admin registered successfully"),
+            @ApiResponse(responseCode = "403", description = "Invalid admin secret"),
+            @ApiResponse(responseCode = "400", description = "Email already exists")
+    })
     @PostMapping("/signup-admin")
-    public ResponseEntity<?> signupAdmin(@Valid @RequestBody SignupRequest signupRequest,
-                                         @RequestHeader("X-ADMIN-SECRET") String adminSecret) {
+    public ResponseEntity<?> signupAdmin(
+            @Valid @RequestBody SignupRequest signupRequest,
+            @Parameter(description = "Secret admin authorization key")
+            @RequestHeader("X-ADMIN-SECRET") String adminSecret
+    ) {
         final String SECRET_KEY = "SuperSecretAdminKey123";
 
         if (!SECRET_KEY.equals(adminSecret)) {
@@ -102,7 +130,6 @@ public class AuthController {
             return ResponseEntity.badRequest().body("Email already exists!");
         }
 
-        // Create admin entity
         User admin = new User();
         admin.setName(signupRequest.getName());
         admin.setEmail(signupRequest.getEmail());
@@ -110,11 +137,8 @@ public class AuthController {
         admin.setRole("ADMIN");
 
         User savedAdmin = userRepository.save(admin);
-
-        // Generate token
         String token = jwtUtil.generateToken(savedAdmin.getEmail());
 
-        // Build typed response DTO
         SignupResponse response = new SignupResponse(
                 "Admin registered successfully!",
                 savedAdmin.getName(),
@@ -125,22 +149,34 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    // login
+    // -----------------------------------------------------
+    // LOGIN
+    // -----------------------------------------------------
+    @Operation(
+            summary = "User Login",
+            description = "Authenticates a user and returns a JWT token."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Login successful"),
+            @ApiResponse(responseCode = "403", description = "User blacklisted"),
+            @ApiResponse(responseCode = "401", description = "Invalid credentials")
+    })
     @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<?> login(
+            @Parameter(description = "User login credentials")
+            @Valid @RequestBody LoginRequest loginRequest
+    ) {
         String email = loginRequest.getEmail();
         String password = loginRequest.getPassword();
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
 
-        // ✅ BLACKLIST CHECK
         if (user.getBlacklisted()) {
             Map<String, Object> error = new HashMap<>();
             error.put("status", "USER_BLACKLISTED");
             error.put("message", "User is blacklisted and cannot login");
             error.put("timestamp", java.time.LocalDateTime.now().toString());
-
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
         }
 
@@ -148,7 +184,6 @@ public class AuthController {
             throw new InvalidCredentialsException("Invalid email or password");
         }
 
-        // Generate JWT
         String token = jwtUtil.generateToken(user.getEmail());
 
         LoginResponse response = new LoginResponse(
@@ -162,11 +197,22 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-
-
+    // -----------------------------------------------------
+    // VALIDATE TOKEN
+    // -----------------------------------------------------
+    @Operation(
+            summary = "Validate JWT Token",
+            description = "Checks if a token is valid and returns the associated email."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Token valid"),
+            @ApiResponse(responseCode = "401", description = "Missing or invalid token")
+    })
     @GetMapping("/validate")
     public ResponseEntity<?> validateToken(
-            @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader) {
+            @Parameter(description = "Auth header in the format: Bearer <token>")
+            @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader
+    ) {
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Missing Authorization header");
@@ -180,5 +226,4 @@ public class AuthController {
         String email = jwtUtil.getEmailFromToken(token);
         return ResponseEntity.ok(Map.of("email", email));
     }
-
 }

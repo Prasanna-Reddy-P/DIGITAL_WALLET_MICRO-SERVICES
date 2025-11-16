@@ -27,7 +27,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.URI;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+
 import java.util.List;
 import java.util.UUID;
 
@@ -50,8 +53,14 @@ public class WalletController {
     }
 
     // --------------------------------------------------------------------
-    // ✅ Get balance of a specific wallet (MUST already exist)
+    // ✅ Get balance of a specific wallet
     // --------------------------------------------------------------------
+    @Operation(summary = "Get wallet balance", description = "Fetches balance for a specific wallet of the logged-in user.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Balance fetched successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid wallet name"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
     @PostMapping("/balance")
     public ResponseEntity<WalletBalanceResponse> getBalance(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
@@ -74,8 +83,15 @@ public class WalletController {
     }
 
     // --------------------------------------------------------------------
-    // ✅ Get transactions for specific wallet of logged-in user
+    // ✅ Get transactions for a wallet
     // --------------------------------------------------------------------
+    @Operation(summary = "Get wallet transactions",
+            description = "Returns paginated transaction history for a user's wallet.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Transactions fetched successfully"),
+            @ApiResponse(responseCode = "400", description = "Missing wallet name"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
     @PostMapping("/transactions")
     public ResponseEntity<Page<TransactionDTO>> getTransactions(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
@@ -107,6 +123,12 @@ public class WalletController {
     // --------------------------------------------------------------------
     // ✅ Load money to wallet
     // --------------------------------------------------------------------
+    @Operation(summary = "Load money", description = "Adds money to the specified wallet.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Money loaded successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid request"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
     @PostMapping("/load")
     public ResponseEntity<LoadMoneyResponse> loadMoney(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
@@ -134,6 +156,12 @@ public class WalletController {
     // --------------------------------------------------------------------
     // ✅ Transfer money to another user
     // --------------------------------------------------------------------
+    @Operation(summary = "Transfer to another user", description = "Transfers money from sender to another user.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Transfer completed"),
+            @ApiResponse(responseCode = "400", description = "Invalid transfer request"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
     @PostMapping("/transfer")
     public ResponseEntity<TransferResponse> transfer(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
@@ -163,6 +191,11 @@ public class WalletController {
     // --------------------------------------------------------------------
     // ✅ Get all wallets for logged-in user
     // --------------------------------------------------------------------
+    @Operation(summary = "Get all user wallets", description = "Lists all wallets owned by the logged-in user.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Wallets fetched successfully"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
     @GetMapping("/my-wallets")
     public ResponseEntity<List<WalletBalanceResponse>> getAllWallets(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader) {
@@ -177,8 +210,14 @@ public class WalletController {
     }
 
     // --------------------------------------------------------------------
-    // ✅ Internal Transfer (User's own wallets)
+    // ✅ Internal transfer
     // --------------------------------------------------------------------
+    @Operation(summary = "Internal wallet transfer", description = "Transfers money between user's own wallets.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Internal transfer successful"),
+            @ApiResponse(responseCode = "400", description = "Invalid request"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
     @PostMapping("/transfer/internal")
     public ResponseEntity<UserInternalTransferResponse> transferWithinWallets(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
@@ -207,6 +246,12 @@ public class WalletController {
     // --------------------------------------------------------------------
     // ✅ Create wallet
     // --------------------------------------------------------------------
+    @Operation(summary = "Create wallet", description = "Creates a new wallet for logged-in user.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Wallet created successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid wallet name"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized")
+    })
     @PostMapping("/create")
     public ResponseEntity<CreateWalletResponse> createWallet(
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,

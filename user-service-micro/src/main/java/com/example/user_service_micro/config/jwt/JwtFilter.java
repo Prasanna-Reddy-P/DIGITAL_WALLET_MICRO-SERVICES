@@ -49,6 +49,15 @@ JwtFilter runs before every secured request, this class runs once per HTTP reque
 
         String path = request.getRequestURI();
 
+        // ✅ Allow Swagger without checking JWT
+        if (path.startsWith("/v3/api-docs") ||
+                path.startsWith("/swagger-ui") ||
+                path.equals("/swagger-ui.html")) {
+
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         // ✅ Short-circuit for public endpoints
         if (path.startsWith("/api/auth") || path.equals("/")) {
             filterChain.doFilter(request, response);

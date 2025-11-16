@@ -23,6 +23,21 @@ public class ServiceTokenFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
+        String path = request.getRequestURI();
+
+        // ---------------------------------------------------
+        // ✅ Skip for Swagger & Public Auth APIs
+        // ---------------------------------------------------
+        if (path.startsWith("/v3/api-docs") ||
+                path.startsWith("/swagger-ui") ||
+                path.equals("/swagger-ui.html") ||
+                path.startsWith("/api/auth") ||
+                path.equals("/")) {
+
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String header = request.getHeader("X-Internal-Service-Key");
 
         if (header != null && header.equals(serviceToken)) {

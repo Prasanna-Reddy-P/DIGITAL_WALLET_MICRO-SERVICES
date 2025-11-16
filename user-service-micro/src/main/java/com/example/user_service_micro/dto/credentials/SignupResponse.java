@@ -1,9 +1,32 @@
 package com.example.user_service_micro.dto.credentials;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(description = "Response returned after a successful user or admin signup")
 public class SignupResponse {
+
+    @Schema(
+            description = "Status or success message",
+            example = "User registered successfully!"
+    )
     private String message;
+
+    @Schema(
+            description = "Full name of the registered user",
+            example = "John Doe"
+    )
     private String name;
+
+    @Schema(
+            description = "Email of the registered user",
+            example = "john.doe@example.com"
+    )
     private String email;
+
+    @Schema(
+            description = "JWT authentication token",
+            example = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    )
     private String token;
 
     public SignupResponse(String message, String name, String email, String token) {

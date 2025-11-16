@@ -1,8 +1,17 @@
 package com.example.wallet_service_micro.dto.BlackList;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(description = "Response after un-blacklisting wallets for a user")
 public class walletUnblacklistResponse {
+
+    @Schema(description = "ID of the user", example = "101")
     private Long userId;
+
+    @Schema(description = "Count of wallets that were un-blacklisted", example = "3")
     private int walletCount;
+
+    @Schema(description = "Message describing the result", example = "Successfully un-blacklisted all wallets")
     private String message;
 
     // ✅ No-args constructor (needed by Jackson)

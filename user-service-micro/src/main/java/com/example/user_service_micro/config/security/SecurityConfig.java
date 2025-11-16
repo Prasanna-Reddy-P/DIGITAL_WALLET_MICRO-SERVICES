@@ -78,6 +78,18 @@ Why by default spring security enables CSRF ?
                         // ✅ Allow all requests under /api/auth (signup, login, etc.)
                         .requestMatchers("/", "/api/auth/**").permitAll()
                         // Admin endpoints
+                        .requestMatchers(
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/swagger-ui/index.html",
+                                "/swagger-ui/swagger-ui.css",
+                                "/swagger-ui/swagger-ui-bundle.js",
+                                "/swagger-ui/swagger-ui-standalone-preset.js",
+                                "/swagger-ui/favicon-32x32.png",
+                                "/swagger-ui/favicon-16x16.png",
+                                "/webjars/**"
+                        ).permitAll()
                         .requestMatchers("/api/internal/**").permitAll()
                         .requestMatchers("/api/wallet/admin/**").hasRole("ADMIN")
                         // All others need authentication
