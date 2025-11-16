@@ -141,7 +141,7 @@ public class WalletService {
 
         if (sender == null) throw new UserNotFoundException("Sender not found");
 
-        UserDTO recipient = userClient.getUserById(receiverId, authHeader);
+        UserDTO recipient = userClient.getUserByIdInternal(receiverId);
         if (recipient == null) throw new UserNotFoundException("Recipient not found");
 
         if (txnService.isDuplicate(transactionId))

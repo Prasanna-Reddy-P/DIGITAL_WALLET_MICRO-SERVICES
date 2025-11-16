@@ -78,23 +78,6 @@ class WalletServiceLoadMoneyTest {
         );
     }
 
-    /*@Test
-    void testLoadMoneyNegativeAmountThrows() {
-        LoadMoneyRequest req = new LoadMoneyRequest();
-        req.setAmount(-50.0);
-
-        doThrow(new IllegalArgumentException("Amount must be positive"))
-                .when(walletValidator).validateAmount(-50.0, "Load");
-
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
-                walletService.loadMoney(user, req, "TXN_NEG", "Primary")
-        );
-
-        assertEquals("Amount must be positive", ex.getMessage());
-        verify(walletValidator).validateAmount(-50.0, "Load");
-        verify(walletManagementService, never()).getExistingWallet(any(), anyString());
-    }*/
-
     @Test
     void testLoadMoneyDailyLimitExceededThrows() {
         wallet.setDailySpent(walletProperties.getDailyLimit() - 100);

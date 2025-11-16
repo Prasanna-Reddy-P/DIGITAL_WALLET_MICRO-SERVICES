@@ -1,6 +1,6 @@
     package com.example.user_service_micro.config.jwt; // (or user_service_micro.config)
 
-    import com.example.user_service_micro.exception.TokenExpiredException;
+    import com.example.user_service_micro.exception.token.TokenExpiredException;
     import io.jsonwebtoken.*;
     import io.jsonwebtoken.Claims;
     import io.jsonwebtoken.Jwts;
@@ -9,11 +9,9 @@
     import io.jsonwebtoken.security.Keys;
     import java.security.Key;
 
-    import io.jsonwebtoken.security.Keys;
     import org.springframework.beans.factory.annotation.Value;
     import org.springframework.stereotype.Component;
 
-    import java.security.Key;
     import java.util.Date;
 
     // JwtUtil class is mainly constructed to generate JwtToken and to perform validation on it.
@@ -28,7 +26,7 @@
         private final long expiration;
 
         public JwtUtil(
-                @Value("${jwt.secret}") String secret, // @Value tells Spring to inject a value from the application.properties file.
+                @Value("${jwt.secret}") String secret, // @Value tells Spring to inject a value from the application.yml file.
                 @Value("${jwt.expiration}") long expiration
         ) {
             this.key = Keys.hmacShaKeyFor(secret.getBytes());
@@ -55,7 +53,7 @@ so you can reuse it in both generateToken() and validateToken() methods.
 
         // jwts is a utility class from JJWT library. builder creates a JWT builder instance.
         public String generateToken(String email) {
-            return Jwts.builder() //Jwts is a class that originates from JJWT library, its used to setup the interface to build JWT token
+            return Jwts.builder() //Jwts is a class that originates from JJWT library, it's used to set-Up the interface to build JWT token
                     .setSubject(email)
                     .setIssuedAt(new Date())
                     .setExpiration(new Date(System.currentTimeMillis() + expiration))

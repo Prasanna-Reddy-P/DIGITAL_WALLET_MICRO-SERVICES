@@ -59,7 +59,7 @@ class WalletControllerInternalTransferNegativeTest {
         req.setAmount(-100.0);
 
         log.info("[Input] Sender=Primary, Receiver=Savings, Amount={}", req.getAmount());
-
+// a method used in unit testing to verify that a specific block of code throws a particular exception
         when(userClient.getUserFromToken(token)).thenReturn(mockUser);
         when(walletService.transferWithinUserWallets(eq(mockUser), eq("Primary"), eq("Savings"), eq(-100.0), anyString()))
                 .thenThrow(new IllegalArgumentException("Amount must be positive"));
@@ -127,35 +127,32 @@ class WalletControllerInternalTransferNegativeTest {
     // Daily limit exceeded → wallet should freeze
     // ------------------------------------------------------------------
     @Test
-    void testInternalTransferDailyLimitExceededHandled() {
-        log.info("[Test] Validating daily limit exceeded scenario...");
+    void testDailyLimitExceededThrows() {
+        log.info("Starting test: testDailyLimitExceededThrows");
 
-        String token = "Bearer xyz";
+        when(userClient.getUserFromToken("Bearer xyz")).thenReturn(mockUser);
+        log.info("Mocked userClient.getUserFromToken()");
 
         UserInternalTransferRequest req = new UserInternalTransferRequest();
         req.setSenderWalletName("Primary");
         req.setReceiverWalletName("Savings");
         req.setAmount(2000.0);
+        log.info("Created UserInternalTransferRequest with amount {}", req.getAmount());
 
-        log.info("[Input] Sender=Primary, Amount={} (Daily limit expected)", req.getAmount());
+        when(walletService.transferWithinUserWallets(any(), any(), any(), anyDouble(), anyString()))
+                .thenThrow(new IllegalArgumentException("Daily limit exceeded"));
+        log.info("Mocked walletService.transferWithinUserWallets() to throw exception");
 
-        UserInternalTransferResponse resp = new UserInternalTransferResponse();
-        resp.setAmountTransferred(2000.0);
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> walletController.transferWithinWallets("Bearer xyz", req)
+        );
+        log.info("Caught expected exception: {}", ex.getMessage());
 
-        when(userClient.getUserFromToken(token)).thenReturn(mockUser);
-        when(walletService.transferWithinUserWallets(eq(mockUser), eq("Primary"), eq("Savings"), eq(2000.0), anyString()))
-                .thenReturn(resp);
-
-        UserInternalTransferResponse result =
-                walletController.transferWithinWallets(token, req).getBody();
-
-        log.info("[Assert] Successful response received for daily limit case.");
-        assertNotNull(result);
-        assertEquals(2000.0, result.getAmountTransferred());
-
-        verify(walletService).transferWithinUserWallets(
-                eq(mockUser), eq("Primary"), eq("Savings"), eq(2000.0), anyString());
+        assertEquals("Daily limit exceeded", ex.getMessage());
+        log.info("Assertion passed: exception message matches");
     }
+
 
     // ------------------------------------------------------------------
     // Duplicate transaction → IllegalArgumentException

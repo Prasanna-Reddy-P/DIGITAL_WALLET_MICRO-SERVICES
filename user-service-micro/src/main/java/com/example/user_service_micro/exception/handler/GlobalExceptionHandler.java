@@ -1,7 +1,7 @@
 package com.example.user_service_micro.exception.handler;
 
 import com.example.user_service_micro.dto.risk.ErrorResponse;
-import com.example.user_service_micro.exception.TokenExpiredException;
+import com.example.user_service_micro.exception.token.TokenExpiredException;
 import com.example.user_service_micro.exception.auth.ForbiddenException;
 import com.example.user_service_micro.exception.auth.InvalidCredentialsException;
 import com.example.user_service_micro.exception.auth.UnauthorizedException;

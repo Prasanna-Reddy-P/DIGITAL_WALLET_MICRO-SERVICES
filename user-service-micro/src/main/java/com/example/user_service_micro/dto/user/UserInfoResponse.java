@@ -5,6 +5,8 @@ public class UserInfoResponse {
     private String email;
     private String role;
 
+    public UserInfoResponse() {}
+
     public UserInfoResponse(String name, String email, String role) {
         this.name = name;
         this.email = email;

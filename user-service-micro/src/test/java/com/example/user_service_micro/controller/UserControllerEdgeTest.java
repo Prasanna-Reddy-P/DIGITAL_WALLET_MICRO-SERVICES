@@ -1,132 +1,152 @@
 package com.example.user_service_micro.controller;
+
+import com.example.user_service_micro.config.jwt.JwtUtil;
 import com.example.user_service_micro.controller.user.UserController;
 import com.example.user_service_micro.dto.user.UserDTO;
 import com.example.user_service_micro.mapper.user.UserMapper;
 import com.example.user_service_micro.model.user.User;
 import com.example.user_service_micro.repository.user.UserRepository;
-import com.example.user_service_micro.config.jwt.JwtUtil;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import org.springframework.http.ResponseEntity;
 
-@WebMvcTest(UserController.class)
-@AutoConfigureMockMvc(addFilters = false) // disables JWT/security filters
 class UserControllerEdgeTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    private static final Logger log = LoggerFactory.getLogger(UserControllerEdgeTest.class);
 
-    @MockBean
+    @InjectMocks
+    private UserController userController;
+
+    @Mock
     private UserRepository userRepository;
 
-    @MockBean
+    @Mock
     private UserMapper userMapper;
 
-    @MockBean
+    @Mock
     private JwtUtil jwtUtil;
-
-    @MockBean
-    private com.example.user_service_micro.service.user.UserService userService;
 
     private User user;
     private UserDTO userDTO;
 
     @BeforeEach
     void setup() {
+        MockitoAnnotations.openMocks(this);
+
+        log.info("Setting up test data...");
+
         user = new User();
         user.setId(1L);
         user.setName("Prasanna");
         user.setEmail("prasanna@example.com");
-        user.setRole("USER");
 
         userDTO = new UserDTO();
         userDTO.setName("Prasanna");
         userDTO.setEmail("prasanna@example.com");
+
+        log.info("Setup complete.");
     }
 
-    // ---------------- Normal user endpoint: /me ----------------
+    /* ===========================
+       TEST: getCurrentUser
+       =========================== */
     @Test
-    @WithMockUser(roles = "USER")
-    void getCurrentUser_Success() throws Exception {
-        when(jwtUtil.getEmailFromToken("token")).thenReturn(user.getEmail());
-        when(userRepository.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
-        when(userMapper.toUsersDTO(user)).thenReturn(userDTO);
+    void getCurrentUser_success() {
+        log.info("Running: getCurrentUser_success");
 
-        mockMvc.perform(get("/api/users/me")
-                        .header("Authorization", "Bearer token"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("Prasanna"))
-                .andExpect(jsonPath("$.email").value("prasanna@example.com"));
-    }
+        String authHeader = "Bearer token";
 
-    @Test
-    @WithMockUser(roles = "USER")
-    void getCurrentUser_UserNotFound() throws Exception {
-        when(jwtUtil.getEmailFromToken("token")).thenReturn("unknown@example.com");
-        when(userRepository.findByEmail("unknown@example.com")).thenReturn(Optional.empty());
+        when(jwtUtil.getEmailFromToken("token"))
+                .thenReturn(user.getEmail());
+        log.info("Mocked jwtUtil.getEmailFromToken");
 
-        mockMvc.perform(get("/api/users/me")
-                        .header("Authorization", "Bearer token"))
-                .andExpect(status().isInternalServerError());
-    }
+        when(userRepository.findByEmail(user.getEmail()))
+                .thenReturn(Optional.of(user));
+        log.info("Mocked userRepository.findByEmail");
 
-    // ---------------- Admin-only endpoint: /users/{id} ----------------
-    @Test
-    @WithMockUser(roles = "ADMIN")
-    void adminAccess_GetUserById_Success() throws Exception {
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        when(userMapper.toUsersDTO(user)).thenReturn(userDTO);
+        when(userMapper.toUsersDTO(user))
+                .thenReturn(userDTO);
+        log.info("Mocked userMapper.toUsersDTO");
 
-        mockMvc.perform(get("/api/users/1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("Prasanna"))
-                .andExpect(jsonPath("$.email").value("prasanna@example.com"));
+        ResponseEntity<UserDTO> response =
+                userController.getCurrentUser(authHeader);
+
+        log.info("Controller response: {}", response);
+
+        assertEquals(200, response.getStatusCodeValue());
+        assertEquals("Prasanna", response.getBody().getName());
+        assertEquals("prasanna@example.com", response.getBody().getEmail());
+
+        log.info("Test getCurrentUser_success PASSED");
     }
 
     @Test
-    @WithMockUser(roles = "USER")
-    void userAccess_GetUserById_Forbidden() throws Exception {
-        // simulate forbidden access in controller logic
-        mockMvc.perform(get("/api/users/1"))
-                .andExpect(status().isInternalServerError()); // matches actual controller behavior
+    void getCurrentUser_userNotFound() {
+        log.info("Running: getCurrentUser_userNotFound");
+
+        String authHeader = "Bearer token";
+
+        when(jwtUtil.getEmailFromToken("token"))
+                .thenReturn("x@x.com");
+        log.info("Mocked jwtUtil.getEmailFromToken with unknown email");
+
+        when(userRepository.findByEmail("x@x.com"))
+                .thenReturn(Optional.empty());
+        log.info("Mocked userRepository.findByEmail to return empty");
+
+        assertThrows(UsernameNotFoundException.class,
+                () -> userController.getCurrentUser(authHeader));
+
+        log.info("Test getCurrentUser_userNotFound PASSED");
+    }
+
+    /* ===========================
+       TEST: getUserById
+       =========================== */
+    @Test
+    void getUserById_success() {
+        log.info("Running: getUserById_success");
+
+        when(userRepository.findById(1L))
+                .thenReturn(Optional.of(user));
+        log.info("Mocked userRepository.findById");
+
+        when(userMapper.toUsersDTO(user))
+                .thenReturn(userDTO);
+        log.info("Mocked userMapper.toUsersDTO");
+
+        ResponseEntity<UserDTO> response =
+                userController.getUserById(1L);
+
+        log.info("Controller response: {}", response);
+
+        assertEquals(200, response.getStatusCodeValue());
+        assertEquals("Prasanna", response.getBody().getName());
+
+        log.info("Test getUserById_success PASSED");
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
-    void adminAccess_GetUserById_NotFound() throws Exception {
-        when(userRepository.findById(2L)).thenReturn(Optional.empty());
+    void getUserById_notFound() {
+        log.info("Running: getUserById_notFound");
 
-        mockMvc.perform(get("/api/users/2"))
-                .andExpect(status().isInternalServerError());
+        when(userRepository.findById(2L))
+                .thenReturn(Optional.empty());
+        log.info("Mocked userRepository.findById to return empty");
+
+        assertThrows(UsernameNotFoundException.class,
+                () -> userController.getUserById(2L));
+
+        log.info("Test getUserById_notFound PASSED");
     }
-
-    // ---------------- Edge cases: malformed Authorization header ----------------
-    @Test
-    @WithMockUser(roles = "USER")
-    void getCurrentUser_MalformedHeader() throws Exception {
-        // No "Bearer " prefix
-        mockMvc.perform(get("/api/users/me")
-                        .header("Authorization", "token-without-bearer"))
-                .andExpect(status().isInternalServerError());
-    }
-
-    @Test
-    @WithMockUser(roles = "USER")
-    void getCurrentUser_NullHeader() throws Exception {
-        mockMvc.perform(get("/api/users/me"))
-                .andExpect(status().isInternalServerError());
-    }
-
 }

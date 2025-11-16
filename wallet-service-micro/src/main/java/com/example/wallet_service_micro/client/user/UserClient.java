@@ -28,18 +28,21 @@ public class UserClient {
     }
 
     // ✅ Still fine (internal call, no domain violation)
-    public UserDTO getUserById(Long userId, String authHeader) {
-        String url = userServiceUrl + "/api/users/" + userId;
+    @Value("${internal.service-token}")
+    private String internalServiceToken;
+
+    public UserDTO getUserByIdInternal(Long userId) {
+        String url = userServiceUrl + "/api/internal/users/" + userId;
         try {
-            return webClient.get() // Initiates an HTTP GET request using the WebClient instance.
-                    .uri(url) // Specifies the target URL for the request.
-                    .header(HttpHeaders.AUTHORIZATION, authHeader)
-                    .retrieve() // Executes the request and retrieves the response.
-                    .bodyToMono(UserDTO.class) // Instructs WebClient to convert the response body into a Mono that emits a single UserDTO object
-                    .block(); // Wait for the response (blocking, not reactive), This means the program execution will pause at this line until the HTTP request and response processing are finished.
-        } catch (WebClientResponseException ex) { // Here we catch 401, 403
+            return webClient.get() // Initiating a GET request from user_service_micro
+                    .uri(url)
+                    .header("X-Internal-Service-Key", internalServiceToken)
+                    .retrieve()
+                    .bodyToMono(UserDTO.class)
+                    .block();
+        } catch (WebClientResponseException ex) {
             throw new RemoteUserServiceException(extractMessage(ex));
-        } catch (Exception ex) { // here 500, 502(Bad-gateway, Like no user exist with id=50)
+        } catch (Exception ex) {
             throw new RemoteUserServiceException("User-service is unavailable: " + ex.getMessage());
         }
     }

@@ -12,11 +12,13 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 
-import com.example.user_service_micro.config.JwtAuthEntryPoint;
+import com.example.user_service_micro.config.jwtEntry.JwtAuthEntryPoint;
 
 /*
 When we run the spring boot application, the classes that are annotated with @Configuration is loaded.
 SecurityConfig builds and registers the Spring Security filter chain via
+
+@Configuration tells spring to mark this class and register it as a source of beans.
 
 @Bean
 public SecurityFilterChain filterChain(HttpSecurity http)
@@ -51,7 +53,11 @@ public class SecurityConfig {
     @Autowired
     private JwtAuthEntryPoint jwtAuthEntryPoint;
 
-    @Bean // indicates that this method returns a bean.
+    @Autowired
+    private ServiceTokenFilter serviceTokenFilter;
+
+
+    @Bean // indicates that this method creates and  returns a bean.
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http // Starts the HttpSecurity configuration chain.
                 .csrf(csrf -> csrf.disable())
@@ -72,6 +78,7 @@ Why by default spring security enables CSRF ?
                         // ✅ Allow all requests under /api/auth (signup, login, etc.)
                         .requestMatchers("/", "/api/auth/**").permitAll()
                         // Admin endpoints
+                        .requestMatchers("/api/internal/**").permitAll()
                         .requestMatchers("/api/wallet/admin/**").hasRole("ADMIN")
                         // All others need authentication
                         .anyRequest().authenticated()
@@ -80,6 +87,7 @@ Why by default spring security enables CSRF ?
                         .authenticationEntryPoint(jwtAuthEntryPoint) // ✅ IMPORTANT
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(serviceTokenFilter, UsernamePasswordAuthenticationFilter.class) // first because, we are checking if there are any internal service calls.
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
                 /*
                 Do not create or use HTTP sessions, Every request must authenticate itself with a JWT token.

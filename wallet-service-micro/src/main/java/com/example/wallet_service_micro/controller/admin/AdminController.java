@@ -71,7 +71,7 @@ public class AdminController {
         int page = request.getPage();
         int size = request.getSize();
 
-        UserDTO user = userClient.getUserById(userId, authHeader);
+        UserDTO user = userClient.getUserByIdInternal(userId);
         if (user == null) {
             logger.error("❌ User not found with ID={}", userId);
             throw new UserNotFoundException("User not found with ID " + userId);
@@ -95,7 +95,7 @@ public class AdminController {
         validateAdmin(authHeader);
 
         Long userId = request.getUserId();
-        userClient.getUserById(userId, authHeader);
+        userClient.getUserByIdInternal(userId);
 
         WalletBalanceResponse response = walletService.getWalletByUserIdAndWalletName(userId, "Default");
         response.setMessage("Balance fetched successfully for userId=" + userId);
@@ -115,7 +115,7 @@ public class AdminController {
         validateAdmin(authHeader);
 
         Long userId = request.getUserId();
-        userClient.getUserById(userId, authHeader);
+        userClient.getUserByIdInternal(userId);
 
         List<WalletBalanceResponse> wallets = walletService.getAllWalletsByUserId(userId);
         logger.info("✅ {} wallets fetched successfully for userId={}", wallets.size(), userId);
@@ -137,7 +137,7 @@ public class AdminController {
         Long userId = request.getUserId();
         String walletName = request.getWalletName();
 
-        userClient.getUserById(userId, authHeader);
+        userClient.getUserByIdInternal(userId);
         WalletBalanceResponse wallet = walletService.getWalletByUserIdAndWalletName(userId, walletName);
         wallet.setMessage("Balance fetched successfully for wallet '" + walletName + "'");
 
@@ -162,7 +162,7 @@ public class AdminController {
         int page = request.getPage();
         int size = request.getSize();
 
-        userClient.getUserById(userId, authHeader);
+        userClient.getUserByIdInternal(userId);
         Page<TransactionDTO> transactions =
                 walletService.getTransactionsByWalletName(userId, walletName, page, size);
 
@@ -186,7 +186,7 @@ public class AdminController {
         Long userId = request.getUserId();
         String walletName = request.getWalletName();
 
-        userClient.getUserById(userId, authHeader);
+        userClient.getUserByIdInternal(userId);
         walletService.blacklistWalletByName(userId, walletName, authHeader);
 
         boolean allBlacklisted = walletService.areAllWalletsBlacklisted(userId);
@@ -218,7 +218,7 @@ public class AdminController {
         validateAdmin(authHeader);
 
         Long userId = request.getUserId();
-        userClient.getUserById(userId, authHeader);
+        userClient.getUserByIdInternal(userId);
 
         int walletCount = walletService.unblacklistAllWallets(userId, authHeader);
 

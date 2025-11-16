@@ -1,4 +1,4 @@
-package com.example.user_service_micro.dto;
+package com.example.user_service_micro.dto.user;
 
 public class UserIdRequest {
     private Long userId;

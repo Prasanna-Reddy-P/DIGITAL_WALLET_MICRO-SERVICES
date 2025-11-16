@@ -42,51 +42,33 @@ JwtFilter runs before every secured request, this class runs once per HTTP reque
      */
 
     @Override
-    // this annotation is used to indicate that doFilterInternal method is over-riding a method from its super class
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        /*
-        HttpServeletRequest request - Represents incoming HTTP request which consists of all the required data:
-        - headers, URL, method
-
-        HttpServeletResponse response - Represents the HTTP response that will be sent back.
-        - response status, JSON body
-
-        FilterChain filterChain - represents chain of filters, that a request has to pass before it hits the controller.
-
-         */
-
         String path = request.getRequestURI();
 
-        // ✅ Skip public endpoints
+        // ✅ Short-circuit for public endpoints
         if (path.startsWith("/api/auth") || path.equals("/")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // ✅ Extract token
-        /*
-        It fetches the Authorization header from the HTTP request.
+        // ✅ SHORT-CIRCUIT: allow internal service calls (ServiceTokenFilter sets attribute)
+        // If ServiceTokenFilter set internalService=true OR this is the internal endpoint path,
+        // skip JWT validation so the request can proceed.
+        Object internalAttr = request.getAttribute("internalService");
+        boolean isInternalAttr = internalAttr instanceof Boolean && (Boolean) internalAttr;
+        if (isInternalAttr || path.startsWith("/api/internal/")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
-        For example, if the request contains:
-        Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-
-        then authHeader will contain that entire string:
-        "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-
-        request represents the incoming HttpServletRequest.
-        .getHeader method is used to extract the header of the JWT token, which is indicated with a
-        constant called Authorization.
-
-         */
+        // -------------------------
+        // existing JWT extraction + validation follows
+        // -------------------------
         String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
-        /*
-        is used in a server-side application, likely within a Java-based web framework like Spring,
-        to retrieve the value of the "Authorization" HTTP header from an incoming client request.
-         */
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // 401 UnAuthorised
             return;
@@ -94,13 +76,10 @@ JwtFilter runs before every secured request, this class runs once per HTTP reque
 
         String token = authHeader.substring(7);
 
-        // ✅ Validate token
-
-        // ✅ Fetch user and set authentication
+        // Validate token and set authentication in context (your existing code)
         User user = userRepository.findByEmail(jwtUtil.getEmailFromToken(token)).orElse(null);
         if (user != null) {
             List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(user.getRole()));
-            System.out.println("-=-=-=-=-=-=-=-=-=-=-=-=-=-=--"+authorities);
             UsernamePasswordAuthenticationToken auth =
                     new UsernamePasswordAuthenticationToken(user, null, authorities);
             SecurityContextHolder.getContext().setAuthentication(auth);
@@ -108,6 +87,7 @@ JwtFilter runs before every secured request, this class runs once per HTTP reque
 
         filterChain.doFilter(request, response);
     }
+
 }
 
 /*

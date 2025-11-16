@@ -1,6 +1,6 @@
 package com.example.user_service_micro.controller.admin;
 
-import com.example.user_service_micro.dto.UserIdRequest;
+import com.example.user_service_micro.dto.user.UserIdRequest;
 import com.example.user_service_micro.dto.user.UserDTO;
 import com.example.user_service_micro.model.user.User;
 import com.example.user_service_micro.dto.user.UserInfoResponse;
