@@ -147,3 +147,40 @@ return authConfig.getAuthenticationManager();
 Spring, give me the fully configured AuthenticationManager (based on your UserDetailsService and PasswordEncoder).
 I will expose it as a bean.
  */
+
+/*
+✅ AuthenticationManager (Short & Clear)
+
+AuthenticationManager is the core component in Spring Security that performs authentication.
+
+What it does?
+
+Takes username + password (or JWT, or any credentials).
+Passes them to AuthenticationProviders.
+Validates credentials using:
+
+UserDetailsService
+PasswordEncoder
+
+Returns:
+Authenticated object (if login is successful)
+Throws exception (if failed)
+
+Why we define it as a @Bean?
+Because other components (like Controllers, Filters) need to call it for login.
+ */
+
+/*
+
+✅ UsernamePasswordAuthenticationFilter (Short & Clear)
+
+This is the default Spring Security filter that handles form-login.
+
+What it does?
+
+Reads username + password from HTTP request (usually /login).
+Creates a UsernamePasswordAuthenticationToken.
+Calls AuthenticationManager to validate login credentials.
+If success → sets authentication in SecurityContext.
+If failure → triggers AuthenticationEntryPoint.
+ */
