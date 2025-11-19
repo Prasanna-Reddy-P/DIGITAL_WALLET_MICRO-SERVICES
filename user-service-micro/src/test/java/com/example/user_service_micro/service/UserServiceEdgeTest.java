@@ -13,6 +13,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 
 import java.util.*;
 
@@ -110,32 +112,42 @@ class UserServiceEdgeTest {
     }
 
     // ---------------- getAllUsers ----------------
+    // ---------------- getAllUsers ----------------
     @Test
     void getAllUsers_EmptyList() {
         log.info("Running test: getAllUsers_EmptyList");
-        when(userRepository.findAll()).thenReturn(Collections.emptyList());
-        log.debug("Mocked empty user list from repository");
 
-        List<UserDTO> result = userService.getAllUsers();
-        log.debug("Resulting DTO list: {}", result);
-        assertTrue(result.isEmpty());
+        Page<User> emptyPage = new PageImpl<>(Collections.emptyList());
+        when(userRepository.findAll(any(org.springframework.data.domain.Pageable.class)))
+                .thenReturn(emptyPage);
+
+        Page<UserDTO> result = userService.getAllUsers(0, 10);
+
+        log.debug("Resulting DTO page: {}", result.getContent());
+        assertTrue(result.getContent().isEmpty());
     }
 
     @Test
     void getAllUsers_Success() {
         log.info("Running test: getAllUsers_Success");
+
         UserDTO dto = new UserDTO();
         dto.setName(user.getName());
 
-        when(userRepository.findAll()).thenReturn(List.of(user));
-        when(userMapper.toDTO(user)).thenReturn(dto);
-        log.debug("Mocked single user returned and mapped to DTO");
+        Page<User> mockPage = new PageImpl<>(List.of(user));
 
-        List<UserDTO> result = userService.getAllUsers();
-        log.debug("Mapped user DTO list: {}", result);
-        assertEquals(1, result.size());
-        assertEquals("Prasanna", result.get(0).getName());
+        when(userRepository.findAll(any(org.springframework.data.domain.Pageable.class)))
+                .thenReturn(mockPage);
+
+        when(userMapper.toDTO(user)).thenReturn(dto);
+
+        Page<UserDTO> result = userService.getAllUsers(0, 10);
+
+        log.debug("Mapped user DTO page: {}", result.getContent());
+        assertEquals(1, result.getContent().size());
+        assertEquals("Prasanna", result.getContent().get(0).getName());
     }
+
 
     // ---------------- getUserById ----------------
     @Test

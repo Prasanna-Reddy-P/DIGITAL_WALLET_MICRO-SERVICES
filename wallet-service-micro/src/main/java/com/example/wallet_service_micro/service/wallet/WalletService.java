@@ -124,7 +124,12 @@ public class WalletService {
         LoadMoneyResponse response = walletMapper.toLoadMoneyResponse(wallet);
         response.setWalletName(walletName);
         response.setRemainingDailyLimit(walletProperties.getDailyLimit() - wallet.getDailySpent());
-        response.setMessage("Wallet loaded successfully ✅");
+
+        if (wallet.getFrozen()) {
+            response.setMessage("Wallet Frozen due to daily limit hit");
+        } else {
+            response.setMessage("Wallet loaded successfully ✅");
+        }
 
         logger.info("✅ LoadMoney completed | userId={} | walletName={} | finalBalance={}",
                 user.getId(), walletName, wallet.getBalance());
@@ -160,6 +165,8 @@ public class WalletService {
 
         walletValidator.validateFrozen(senderWallet);
         walletValidator.validateBalance(senderWallet, amount);
+        walletValidator.validateDailyLimit(senderWallet, amount);
+
 
         logger.debug("✅ Transfer validation passed | senderWallet={} | receiverWallet={}",
                 senderWalletName, receiverWallet.getWalletName());
@@ -211,7 +218,12 @@ public class WalletService {
         response.setAmountTransferred(amount);
         response.setRemainingDailyLimit(walletProperties.getDailyLimit() - senderWallet.getDailySpent());
         response.setFrozen(senderWallet.getFrozen());
-        response.setMessage("Transfer successful ✅");
+
+        if (senderWallet.getFrozen()) {
+            response.setMessage("Wallet Frozen due to daily limit hit");
+        } else {
+            response.setMessage("Transfer successful ✅");
+        }
 
         return response;
     }
@@ -246,6 +258,7 @@ public class WalletService {
 
         walletValidator.validateFrozen(senderWallet);
         walletValidator.validateBalance(senderWallet, amount);
+        walletValidator.validateDailyLimit(senderWallet, amount);
 
         senderWallet.setBalance(senderWallet.getBalance() - amount);
         senderWallet.setDailySpent(senderWallet.getDailySpent() + amount);
@@ -268,7 +281,11 @@ public class WalletService {
         response.setReceiverBalance(receiverWallet.getBalance());
         response.setAmountTransferred(amount);
         response.setRemainingDailyLimit(walletProperties.getDailyLimit() - senderWallet.getDailySpent());
-        response.setMessage("Transfer successful ✅");
+        if (senderWallet.getFrozen()) {
+            response.setMessage("Wallet is  FROZEN due to daily limit hit❌");
+        } else {
+            response.setMessage("Transfer successful ✅");
+        }
 
         return response;
     }

@@ -8,6 +8,9 @@ import com.example.user_service_micro.mapper.user.UserMapper;
 import com.example.user_service_micro.model.user.User;
 import com.example.user_service_micro.repository.user.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -41,12 +44,12 @@ public class UserService {
         return userRepository.findByEmail(email).orElse(null);
     }
 
-    public List<UserDTO> getAllUsers() {
-        return userRepository.findAll()
-                .stream()
-                .map(userMapper::toDTO)
-                .toList();
+    public Page<UserDTO> getAllUsers(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return userRepository.findAll(pageable)
+                .map(userMapper::toDTO);
     }
+
 
     public UserInfoResponse getUserById(Long userId) {
         User user = userRepository.findById(userId)

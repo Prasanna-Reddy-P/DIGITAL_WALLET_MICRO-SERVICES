@@ -1,6 +1,7 @@
 package com.example.user_service_micro.controller;
 
 import com.example.user_service_micro.controller.admin.AdminController;
+import com.example.user_service_micro.dto.pagination.PaginationRequestDTO;
 import com.example.user_service_micro.dto.user.UserDTO;
 import com.example.user_service_micro.dto.user.UserIdRequest;
 import com.example.user_service_micro.dto.user.UserInfoResponse;
@@ -13,7 +14,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
 
-import org.springframework.http.HttpHeaders;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.http.ResponseEntity;
 
 import java.util.List;
@@ -47,33 +49,50 @@ class AdminControllerTest {
 
     // ---------------- getAllUsers -------------------
 
+    private PaginationRequestDTO createPaginationDTO() {
+        PaginationRequestDTO dto = new PaginationRequestDTO();
+        dto.setPage(0);
+        dto.setSize(10);
+        return dto;
+    }
+
     @Test
     void getAllUsers_Unauthorized() {
         when(userService.getUserFromToken("token")).thenReturn(null);
 
+        PaginationRequestDTO dto = createPaginationDTO();
+
         assertThrows(UnauthorizedException.class,
-                () -> adminController.getAllUsers("token"));
+                () -> adminController.getAllUsers("token", dto));
     }
 
     @Test
     void getAllUsers_Forbidden_NotAdmin() {
         when(userService.getUserFromToken("token")).thenReturn(normalUser);
 
+        PaginationRequestDTO dto = createPaginationDTO();
+
         assertThrows(ForbiddenException.class,
-                () -> adminController.getAllUsers("token"));
+                () -> adminController.getAllUsers("token", dto));
     }
 
     @Test
     void getAllUsers_Success() {
         when(userService.getUserFromToken("token")).thenReturn(adminUser);
-        UserDTO dto = new UserDTO();
-        dto.setName("Prasanna");
-        when(userService.getAllUsers()).thenReturn(List.of(dto));
 
-        ResponseEntity<List<UserDTO>> response = adminController.getAllUsers("token");
+        PaginationRequestDTO dto = createPaginationDTO();
+
+        UserDTO userDto = new UserDTO();
+        userDto.setName("Prasanna");
+
+        Page<UserDTO> mockPage = new PageImpl<>(List.of(userDto));
+        when(userService.getAllUsers(0, 10)).thenReturn(mockPage);
+
+        ResponseEntity<Page<UserDTO>> response =
+                adminController.getAllUsers("token", dto);
 
         assertEquals(200, response.getStatusCodeValue());
-        assertEquals(1, response.getBody().size());
+        assertEquals(1, response.getBody().getContent().size());
     }
 
     // ---------------- getUserById -------------------
@@ -183,4 +202,3 @@ class AdminControllerTest {
         assertEquals("User unblacklisted successfully", response.getBody());
     }
 }
-

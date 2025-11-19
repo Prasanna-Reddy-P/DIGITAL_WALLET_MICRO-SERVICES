@@ -8,7 +8,6 @@ import com.example.wallet_service_micro.repository.wallet.WalletRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
@@ -20,21 +19,60 @@ public class WalletTransactionService {
     private final TransactionRepository transactionRepository;
     private final WalletRepository walletRepository;
 
-    public WalletTransactionService(TransactionRepository transactionRepository, WalletRepository walletRepository) {
+    public WalletTransactionService(TransactionRepository transactionRepository,
+                                    WalletRepository walletRepository) {
         this.transactionRepository = transactionRepository;
         this.walletRepository = walletRepository;
+    }
+
+    // --------------------------------------------------------------------
+    // HELPER: GET WALLET
+    // --------------------------------------------------------------------
+    private Wallet getWallet(Long userId, String walletName) {
+        return walletRepository
+                .findByUserIdAndWalletName(userId, walletName)
+                .orElseThrow(() -> {
+                    logger.error("❌ Wallet '{}' not found for userId={}", walletName, userId);
+                    return new RuntimeException("Wallet not found");
+                });
+    }
+
+    // --------------------------------------------------------------------
+    // HELPER: CREATE TRANSACTION OBJECT
+    // --------------------------------------------------------------------
+    private Transaction createTransaction(
+            UserDTO user,
+            double amount,
+            String type,
+            String txnId,
+            Wallet wallet,
+            String senderWallet,
+            String receiverWallet) {
+
+        Transaction tx = new Transaction();
+        tx.setUserId(user.getId());
+        tx.setUserEmail(user.getEmail());
+        tx.setAmount(amount);
+        tx.setType(type);
+        tx.setTransactionId(txnId);
+        tx.setTimestamp(LocalDateTime.now());
+
+        tx.setWalletId(wallet.getId());
+        tx.setWalletName(wallet.getWalletName());
+
+        tx.setSenderWalletName(senderWallet);
+        tx.setReceiverWalletName(receiverWallet);
+
+        return tx;
     }
 
     // --------------------------------------------------------------------
     // DUPLICATE CHECK
     // --------------------------------------------------------------------
     public boolean isDuplicate(String transactionId) {
-        logger.debug("🔍 Checking for duplicate transaction with ID: {}", transactionId);
         boolean exists = transactionRepository.existsByTransactionId(transactionId);
         if (exists) {
             logger.warn("⚠️ Duplicate transaction detected: {}", transactionId);
-        } else {
-            logger.info("✅ Transaction ID '{}' is unique", transactionId);
         }
         return exists;
     }
@@ -43,135 +81,87 @@ public class WalletTransactionService {
     // RECORD LOAD / SELF-CREDITED
     // --------------------------------------------------------------------
     public void recordLoadTransaction(UserDTO user, double amount, String txnId, String walletName) {
-        logger.info("💰 Recording LOAD transaction | userId={} | walletName={} | txnId={} | amount={}",
+
+        logger.info("💰 Recording LOAD | userId={} | wallet={} | txnId={} | amount={}",
                 user.getId(), walletName, txnId, amount);
 
-        Wallet wallet = walletRepository
-                .findByUserIdAndWalletName(user.getId(), walletName)
-                .orElseThrow(() -> {
-                    logger.error("❌ Wallet '{}' not found for userId={}", walletName, user.getId());
-                    return new RuntimeException("Wallet not found");
-                });
+        Wallet wallet = getWallet(user.getId(), walletName);
 
-        Transaction tx = new Transaction();
-        tx.setUserId(user.getId());
-        tx.setAmount(amount);
-        tx.setType("SELF_CREDITED");
-        tx.setTimestamp(LocalDateTime.now());
-        tx.setUserEmail(user.getEmail());
-        tx.setTransactionId(txnId);
-
-        tx.setWalletId(wallet.getId());
-        tx.setWalletName(wallet.getWalletName());
-
-        tx.setSenderWalletName(null);
-        tx.setReceiverWalletName(wallet.getWalletName());
+        Transaction tx = createTransaction(
+                user,
+                amount,
+                "SELF_CREDITED",
+                txnId,
+                wallet,
+                null,
+                walletName
+        );
 
         transactionRepository.save(tx);
-        logger.info("✅ Load transaction recorded successfully | txnId={} | wallet={}", txnId, walletName);
+        logger.info("✅ Load transaction saved | txnId={}", txnId);
     }
 
     // --------------------------------------------------------------------
-    // RECORD EXTERNAL TRANSFER (Sender & Receiver)
+    // RECORD EXTERNAL TRANSFER
     // --------------------------------------------------------------------
     public void recordTransferTransactions(
-            UserDTO sender, UserDTO recipient,
-            double amount, String txnId,
-            String senderWalletName, String receiverWalletName) {
+            UserDTO sender,
+            UserDTO recipient,
+            double amount,
+            String txnId,
+            String senderWalletName,
+            String receiverWalletName) {
 
-        logger.info("💸 Recording TRANSFER transaction | txnId={} | senderId={} | receiverId={} | amount={}",
+        logger.info("💸 Recording TRANSFER | txnId={} | senderId={} | receiverId={} | amount={}",
                 txnId, sender.getId(), recipient.getId(), amount);
 
-        // ✅ Sender Wallet
-        Wallet senderWallet = walletRepository
-                .findByUserIdAndWalletName(sender.getId(), senderWalletName)
-                .orElseThrow(() -> {
-                    logger.error("❌ Sender wallet '{}' not found for userId={}", senderWalletName, sender.getId());
-                    return new RuntimeException("Sender wallet not found");
-                });
+        Wallet senderWallet = getWallet(sender.getId(), senderWalletName);
+        Wallet receiverWallet = getWallet(recipient.getId(), receiverWalletName);
 
-        // ✅ Receiver Wallet
-        Wallet recipientWallet = walletRepository
-                .findByUserIdAndWalletName(recipient.getId(), receiverWalletName)
-                .orElseThrow(() -> {
-                    logger.error("❌ Recipient wallet '{}' not found for userId={}", receiverWalletName, recipient.getId());
-                    return new RuntimeException("Recipient wallet not found");
-                });
+        // Debit (sender)
+        Transaction debit = createTransaction(
+                sender, amount, "DEBIT", txnId,
+                senderWallet, senderWalletName, receiverWalletName
+        );
 
-        // ✅ Debit entry (Sender)
-        Transaction debit = new Transaction();
-        debit.setUserId(sender.getId());
-        debit.setAmount(amount);
-        debit.setType("DEBIT");
-        debit.setTimestamp(LocalDateTime.now());
-        debit.setUserEmail(sender.getEmail());
-        debit.setTransactionId(txnId);
-
-        debit.setWalletId(senderWallet.getId());
-        debit.setWalletName(senderWallet.getWalletName());
-
-        debit.setSenderWalletName(senderWalletName);
-        debit.setReceiverWalletName(receiverWalletName);
+        // Credit (recipient)
+        Transaction credit = createTransaction(
+                recipient, amount, "CREDIT", txnId,
+                receiverWallet, senderWalletName, receiverWalletName
+        );
 
         transactionRepository.save(debit);
-        logger.debug("💳 Debit transaction saved | userId={} | wallet={} | amount={}",
-                sender.getId(), senderWalletName, amount);
-
-        // ✅ Credit entry (Receiver)
-        Transaction credit = new Transaction();
-        credit.setUserId(recipient.getId());
-        credit.setAmount(amount);
-        credit.setType("CREDIT");
-        credit.setTimestamp(LocalDateTime.now());
-        credit.setUserEmail(recipient.getEmail());
-        credit.setTransactionId(txnId);
-
-        credit.setWalletId(recipientWallet.getId());
-        credit.setWalletName(recipientWallet.getWalletName());
-
-        credit.setSenderWalletName(senderWalletName);
-        credit.setReceiverWalletName(receiverWalletName);
-
         transactionRepository.save(credit);
-        logger.debug("💰 Credit transaction saved | userId={} | wallet={} | amount={}",
-                recipient.getId(), receiverWalletName, amount);
 
-        logger.info("✅ Transfer transaction recorded successfully | txnId={}", txnId);
+        logger.info("✅ Transfer recorded successfully | txnId={}", txnId);
     }
 
-    // --------------------------------------------------------------------
-    // RECORD INTERNAL WALLET-TO-WALLET TRANSFER (Same user)
-    // --------------------------------------------------------------------
+    /*
     public void recordInternalTransfer(
-            UserDTO user, double amount, String txnId,
-            String senderWalletName, String receiverWalletName) {
+            UserDTO user,
+            double amount,
+            String txnId,
+            String senderWalletName,
+            String receiverWalletName) {
 
-        logger.info("🔄 Recording INTERNAL TRANSFER | userId={} | senderWallet={} | receiverWallet={} | amount={}",
+        logger.info("🔄 Recording INTERNAL TRANSFER | userId={} | sender={} | receiver={} | amount={}",
                 user.getId(), senderWalletName, receiverWalletName, amount);
 
-        Wallet senderWallet = walletRepository
-                .findByUserIdAndWalletName(user.getId(), senderWalletName)
-                .orElseThrow(() -> {
-                    logger.error("❌ Sender wallet '{}' not found for userId={}", senderWalletName, user.getId());
-                    return new RuntimeException("Sender wallet not found");
-                });
+        Wallet senderWallet = getWallet(user.getId(), senderWalletName);
 
-        Transaction tx = new Transaction();
-        tx.setUserId(user.getId());
-        tx.setAmount(amount);
-        tx.setType("INTERNAL");
-        tx.setTimestamp(LocalDateTime.now());
-        tx.setUserEmail(user.getEmail());
-        tx.setTransactionId(txnId);
-
-        tx.setWalletId(senderWallet.getId());
-        tx.setWalletName(senderWallet.getWalletName());
-
-        tx.setSenderWalletName(senderWalletName);
-        tx.setReceiverWalletName(receiverWalletName);
+        Transaction tx = createTransaction(
+                user,
+                amount,
+                "INTERNAL",
+                txnId,
+                senderWallet,
+                senderWalletName,
+                receiverWalletName
+        );
 
         transactionRepository.save(tx);
-        logger.info("✅ Internal transfer recorded successfully | txnId={} | senderWallet={} | receiverWallet={}",
-                txnId, senderWalletName, receiverWalletName);
+
+        logger.info("✅ Internal transfer recorded | txnId={}", txnId);
     }
+     */
 }

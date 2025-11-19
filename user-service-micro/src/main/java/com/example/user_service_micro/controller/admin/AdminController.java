@@ -1,5 +1,6 @@
 package com.example.user_service_micro.controller.admin;
 
+import com.example.user_service_micro.dto.pagination.PaginationRequestDTO;
 import com.example.user_service_micro.dto.user.UserIdRequest;
 import com.example.user_service_micro.dto.user.UserDTO;
 import com.example.user_service_micro.model.user.User;
@@ -9,17 +10,14 @@ import com.example.user_service_micro.exception.auth.UnauthorizedException;
 import com.example.user_service_micro.exception.auth.ForbiddenException;
 
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/users")
@@ -30,54 +28,51 @@ public class AdminController {
         this.userService = userService;
     }
 
-    // ---------------------------
-    // GET ALL USERS (ADMIN ONLY)
-    // ---------------------------
+    // --------------------------------------------------------------------
+    // GET ALL USERS WITH PAGINATION — VIA JSON BODY (POST)
+    // --------------------------------------------------------------------
     @Operation(
-            summary = "Get all users",
-            description = "Returns a list of all users. Accessible only to ADMIN users."
+            summary = "Get paginated list of users (Admin only)",
+            description = "Fetches users using pagination sent inside request body."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Users fetched successfully",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = UserDTO.class))),
-            @ApiResponse(responseCode = "401", description = "Unauthorized access"),
+                    content = @Content(schema = @Schema(implementation = UserDTO.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
             @ApiResponse(responseCode = "403", description = "Admins only")
     })
-    @GetMapping
-    public ResponseEntity<List<UserDTO>> getAllUsers(
-            @Parameter(description = "Authorization header containing JWT token")
-            @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader) {
+    @PostMapping("/list")
+    public ResponseEntity<Page<UserDTO>> getAllUsers(
+            @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
+            @RequestBody PaginationRequestDTO request
+    ) {
 
         User admin = userService.getUserFromToken(authHeader);
         if (admin == null) throw new UnauthorizedException("Unauthorized access");
         if (!"ADMIN".equals(admin.getRole())) throw new ForbiddenException("Admins only");
 
-        return ResponseEntity.ok(userService.getAllUsers());
+        Page<UserDTO> users = userService.getAllUsers(request.getPage(), request.getSize());
+        return ResponseEntity.ok(users);
     }
 
-    // ---------------------------
+
+    // --------------------------------------------------------------------
     // GET USER BY ID
-    // ---------------------------
+    // --------------------------------------------------------------------
     @Operation(
             summary = "Get user details by ID",
-            description = "Fetches complete information of a user by ID. Admin only."
+            description = "Admin-only access"
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "User details retrieved",
                     content = @Content(schema = @Schema(implementation = UserInfoResponse.class))),
-            @ApiResponse(responseCode = "401", description = "Unauthorized access"),
-            @ApiResponse(responseCode = "403", description = "Admins only"),
             @ApiResponse(responseCode = "404", description = "User not found")
     })
     @GetMapping("/{userId}")
     public ResponseEntity<UserInfoResponse> getUserById(
-            @Parameter(description = "JWT Bearer token")
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
-
-            @Parameter(description = "User ID to fetch")
-            @PathVariable Long userId) {
-
+            @PathVariable Long userId
+    ) {
         User admin = userService.getUserFromToken(authHeader);
         if (admin == null) throw new UnauthorizedException("Unauthorized access");
         if (!"ADMIN".equals(admin.getRole())) throw new ForbiddenException("Admins only");
@@ -85,63 +80,38 @@ public class AdminController {
         return ResponseEntity.ok(userService.getUserById(userId));
     }
 
-    // ---------------------------
+
+    // --------------------------------------------------------------------
     // BLACKLIST USER
-    // ---------------------------
-    @Operation(
-            summary = "Blacklist a user",
-            description = "Marks a user account as blacklisted. Only admins can perform this."
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "User blacklisted successfully"),
-            @ApiResponse(responseCode = "401", description = "Unauthorized access"),
-            @ApiResponse(responseCode = "403", description = "Admins only")
-    })
+    // --------------------------------------------------------------------
+    @Operation(summary = "Blacklist a user", description = "Admin-only")
     @PutMapping("/blacklist")
     public ResponseEntity<String> blacklistUser(
-            @Parameter(description = "JWT Bearer token")
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
-
-            @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "User ID to blacklist",
-                    required = true,
-                    content = @Content(schema = @Schema(implementation = UserIdRequest.class))
-            )
-            @RequestBody UserIdRequest request) {
+            @RequestBody UserIdRequest request
+    ) {
 
         User admin = userService.getUserFromToken(authHeader);
-        if (admin == null) throw new UnauthorizedException("Unauthorized access");
+        if (admin == null) throw new UnauthorizedException("Unauthorized");
         if (!"ADMIN".equals(admin.getRole())) throw new ForbiddenException("Admins only");
 
         userService.blacklistUser(request.getUserId());
         return ResponseEntity.ok("User blacklisted successfully");
     }
 
-    // ---------------------------
+
+    // --------------------------------------------------------------------
     // UN-BLACKLIST USER
-    // ---------------------------
-    @Operation(
-            summary = "Remove user from blacklist",
-            description = "Unblacklists a user account. Admin-only access."
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "User unblacklisted successfully"),
-            @ApiResponse(responseCode = "401", description = "Unauthorized access"),
-            @ApiResponse(responseCode = "403", description = "Admins only")
-    })
+    // --------------------------------------------------------------------
+    @Operation(summary = "Unblacklist a user", description = "Admin-only")
     @PutMapping("/unblacklist")
     public ResponseEntity<String> unblacklistUser(
-            @Parameter(description = "JWT Bearer token")
             @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
-
-            @io.swagger.v3.oas.annotations.parameters.RequestBody(
-                    description = "User ID to unblacklist",
-                    required = true,
-                    content = @Content(schema = @Schema(implementation = UserIdRequest.class)))
-            @RequestBody UserIdRequest request) {
+            @RequestBody UserIdRequest request
+    ) {
 
         User admin = userService.getUserFromToken(authHeader);
-        if (admin == null) throw new UnauthorizedException("Unauthorized access");
+        if (admin == null) throw new UnauthorizedException("Unauthorized");
         if (!"ADMIN".equals(admin.getRole())) throw new ForbiddenException("Admins only");
 
         userService.unblacklistUser(request.getUserId());
