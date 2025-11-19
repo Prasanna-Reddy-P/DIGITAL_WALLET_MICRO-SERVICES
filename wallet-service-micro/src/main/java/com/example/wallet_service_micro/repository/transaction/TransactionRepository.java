@@ -38,6 +38,19 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     @Query("SELECT t FROM Transaction t " +
             "WHERE t.userId = :userId " +
+            "AND t.walletName = :walletName " +
+            "AND t.timestamp BETWEEN :start AND :end " +
+            "ORDER BY t.timestamp DESC")
+    List<Transaction> findByUserAndWalletNameAndTimestampBetween(
+            @Param("userId") Long userId,
+            @Param("walletName") String walletName,
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end
+    );
+
+
+    @Query("SELECT t FROM Transaction t " +
+            "WHERE t.userId = :userId " +
             "AND t.walletId = :walletId " +
             "AND t.timestamp BETWEEN :start AND :end " +
             "ORDER BY t.timestamp DESC")

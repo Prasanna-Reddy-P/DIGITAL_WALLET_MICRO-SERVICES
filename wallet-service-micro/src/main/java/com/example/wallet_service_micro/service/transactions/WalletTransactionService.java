@@ -135,33 +135,4 @@ public class WalletTransactionService {
 
         logger.info("✅ Transfer recorded successfully | txnId={}", txnId);
     }
-
-    /*
-    public void recordInternalTransfer(
-            UserDTO user,
-            double amount,
-            String txnId,
-            String senderWalletName,
-            String receiverWalletName) {
-
-        logger.info("🔄 Recording INTERNAL TRANSFER | userId={} | sender={} | receiver={} | amount={}",
-                user.getId(), senderWalletName, receiverWalletName, amount);
-
-        Wallet senderWallet = getWallet(user.getId(), senderWalletName);
-
-        Transaction tx = createTransaction(
-                user,
-                amount,
-                "INTERNAL",
-                txnId,
-                senderWallet,
-                senderWalletName,
-                receiverWalletName
-        );
-
-        transactionRepository.save(tx);
-
-        logger.info("✅ Internal transfer recorded | txnId={}", txnId);
-    }
-     */
 }

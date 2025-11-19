@@ -31,7 +31,11 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class WalletService {
@@ -410,4 +414,19 @@ public class WalletService {
         return transactionRepository.findByWalletId(wallet.getId(), PageRequest.of(page, size))
                 .map(transactionMapper::toDTO);
     }
+
+    public List<TransactionDTO> getUserTransactionsBetween(
+            Long userId, String walletName, LocalDateTime start, LocalDateTime end) {
+
+        List<Transaction> result =
+                transactionRepository.findByUserAndWalletNameAndTimestampBetween(
+                        userId, walletName, start, end
+                );
+
+        return result.stream()
+                .map(transactionMapper::toDTO)
+                .collect(Collectors.toList());
+    }
+
+
 }

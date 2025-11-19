@@ -3,6 +3,7 @@ package com.example.wallet_service_micro.controller.admin;
 import com.example.wallet_service_micro.client.user.UserClient;
 import com.example.wallet_service_micro.dto.BlackList.WalletBlacklistResponse;
 import com.example.wallet_service_micro.dto.BlackList.walletUnblacklistResponse;
+import com.example.wallet_service_micro.dto.UserTransactionRangeRequest;
 import com.example.wallet_service_micro.dto.userRequest.UserIdRequest;
 import com.example.wallet_service_micro.dto.userRequest.UserTransactionRequest;
 import com.example.wallet_service_micro.dto.walletRequest.WalletNameRequest;
@@ -28,6 +29,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -249,4 +251,35 @@ public class AdminController {
 
         return ResponseEntity.ok(response);
     }
+
+    @Operation(
+            summary = "Get user's transactions between two timestamps",
+            description = "Fetch all transactions of a user across all wallets between start and end timestamps (ADMIN only)"
+    )
+    @ApiResponse(responseCode = "200", description = "Transactions fetched successfully")
+    @PostMapping("/transactions/range")
+    public ResponseEntity<List<TransactionDTO>> getUserTransactionsInRange(
+            @RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
+            @RequestBody UserTransactionRangeRequest request) {
+
+        validateAdmin(authHeader);
+
+        Long userId = request.getUserId();
+        String walletName = request.getWalletName();
+        LocalDateTime start = request.getStart();
+        LocalDateTime end = request.getEnd();
+
+        logger.info("📘 Admin requested transactions for userId={} walletName={} from {} to {}",
+                userId, walletName, start, end);
+
+        // Validate user exists
+        userClient.getUserByIdInternal(userId);
+
+        // Fetch transactions only for the given walletName
+        List<TransactionDTO> transactions =
+                walletService.getUserTransactionsBetween(userId, walletName, start, end);
+
+        return ResponseEntity.ok(transactions);
+    }
+
 }
