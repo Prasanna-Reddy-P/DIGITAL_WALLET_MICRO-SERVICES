@@ -43,11 +43,15 @@ public class WalletValidator {
         if (amount > remaining) {
             logger.warn("❌ Daily limit exceeded for wallet: {} | attempted: {} | remaining: {}",
                     wallet.getWalletName(), amount, remaining);
-            throw new IllegalArgumentException("Daily limit exceeded for wallet, may be the wallet is frozen or you are performing a transaction where amount is greater than 30,000");
+            throw new IllegalArgumentException(
+                    "Daily limit exceeded for wallet '" + wallet.getWalletName() +
+                            "'. You can only transact " + remaining + " more today."
+            );
         }
 
         logger.info("✅ Daily limit validation passed for wallet: {}", wallet.getWalletName());
     }
+
 
     public void validateFrozen(Wallet wallet) {
         logger.debug("Checking frozen status for wallet: {}", wallet.getWalletName());

@@ -15,6 +15,7 @@ import com.example.wallet_service_micro.dto.wallet.WalletBalanceResponse;
 import com.example.wallet_service_micro.dto.walletCreation.CreateWalletRequest;
 import com.example.wallet_service_micro.dto.walletCreation.CreateWalletResponse;
 import com.example.wallet_service_micro.model.wallet.Wallet;
+import com.example.wallet_service_micro.service.transactions.WalletTransactionService;
 import com.example.wallet_service_micro.service.wallet.WalletService;
 import com.example.wallet_service_micro.service.factory.WalletManagementService;
 
@@ -43,13 +44,16 @@ public class WalletController {
     private final UserClient userClient;
     private final WalletService walletService;
     private final WalletManagementService walletManagementService;
+    private final WalletTransactionService walletTransactionService;
 
     public WalletController(UserClient userClient,
                             WalletService walletService,
-                            WalletManagementService walletManagementService) {
+                            WalletManagementService walletManagementService,
+                            WalletTransactionService walletTransactionService) {
         this.userClient = userClient;
         this.walletService = walletService;
         this.walletManagementService = walletManagementService;
+        this.walletTransactionService = walletTransactionService;
     }
 
     // --------------------------------------------------------------------
@@ -112,7 +116,7 @@ public class WalletController {
 
         walletManagementService.getExistingWallet(user, walletName);
 
-        Page<TransactionDTO> tx = walletService.getTransactionsByWallet(user, walletName, page, size);
+        Page<TransactionDTO> tx = walletTransactionService.getTransactionsByWallet(user, walletName, page, size);
 
         logger.info("✅ {} transactions fetched for userId={}, wallet='{}'",
                 tx.getTotalElements(), user.getId(), walletName);

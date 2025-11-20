@@ -63,4 +63,22 @@ public class WalletManagementService {
         logger.info("✅ Wallet '{}' found for userId={}", walletName, user.getId());
         return wallet;
     }
+
+    // --------------------------------------------------------------------
+    // HELPER: GET WALLET
+    // --------------------------------------------------------------------
+    public Wallet getWallet(Long userId, String walletName) {
+        return walletRepository
+                .findByUserIdAndWalletName(userId, walletName)
+                .orElseThrow(() -> {
+                    logger.error("❌ Wallet '{}' not found for userId={}", walletName, userId);
+                    return new RuntimeException("Wallet not found");
+                });
+    }
+
+    public Wallet getWalletOrThrow(Long userId, String walletName) {
+        return walletRepository.findByUserIdAndWalletName(userId, walletName)
+                .orElseThrow(() -> new IllegalArgumentException("Wallet not found: " + walletName));
+    }
+
 }

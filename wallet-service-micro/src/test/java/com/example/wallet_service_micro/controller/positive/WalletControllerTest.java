@@ -17,6 +17,7 @@ import com.example.wallet_service_micro.dto.walletRequest.WalletNameRequest;
 import com.example.wallet_service_micro.dto.walletRequest.WalletTransactionRequest;
 import com.example.wallet_service_micro.model.wallet.Wallet;
 import com.example.wallet_service_micro.service.factory.WalletManagementService;
+import com.example.wallet_service_micro.service.transactions.WalletTransactionService;
 import com.example.wallet_service_micro.service.wallet.WalletService;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -45,6 +46,9 @@ class WalletControllerTest {
 
     @Mock
     private WalletManagementService walletManagementService;
+
+    @Mock
+    private WalletTransactionService walletTransactionService;
 
     @InjectMocks
     private WalletController walletController;
@@ -107,7 +111,7 @@ class WalletControllerTest {
         tx.setAmount(200.0);
 
         Page<TransactionDTO> page = new PageImpl<>(List.of(tx));
-        when(walletService.getTransactionsByWallet(mockUser, walletName, 0, 10))
+        when(walletTransactionService.getTransactionsByWallet(mockUser, walletName, 0, 10))
                 .thenReturn(page);
 
         // ✅ Create the DTO

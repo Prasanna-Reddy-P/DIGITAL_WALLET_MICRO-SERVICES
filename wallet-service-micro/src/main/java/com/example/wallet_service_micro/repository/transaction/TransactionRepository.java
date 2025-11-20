@@ -14,28 +14,11 @@ import java.util.List;
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
 
-    // -------------------------------
-    // Pagination for transactions of a user
-    // -------------------------------
-    Page<Transaction> findByUserId(Long userId, Pageable pageable);
+    // Transaction History of the user.
+    Page<Transaction> findByUserId(Long userId, Pageable pageable);;
 
-    // Pagination for transactions of a specific wallet
-    Page<Transaction> findByUserIdAndWalletId(Long userId, Long walletId, Pageable pageable);
 
-    // -------------------------------
-    // Filter transactions by date range
-    // -------------------------------
-    // Custom JPQL query (uses entity field names, not table columns).
-    @Query("SELECT t FROM Transaction t " +
-            "WHERE t.userId = :userId " +
-            "AND t.timestamp BETWEEN :start AND :end " +
-            "ORDER BY t.timestamp DESC")
-    List<Transaction> findByUserAndTimestampBetween(
-            @Param("userId") Long userId,
-            @Param("start") LocalDateTime start,
-            @Param("end") LocalDateTime end
-    );
-
+    // Transaction History of a respective wallet of a user in a time range.
     @Query("SELECT t FROM Transaction t " +
             "WHERE t.userId = :userId " +
             "AND t.walletName = :walletName " +
@@ -48,26 +31,11 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             @Param("end") LocalDateTime end
     );
 
-
-    @Query("SELECT t FROM Transaction t " +
-            "WHERE t.userId = :userId " +
-            "AND t.walletId = :walletId " +
-            "AND t.timestamp BETWEEN :start AND :end " +
-            "ORDER BY t.timestamp DESC")
-    List<Transaction> findByUserAndWalletAndTimestampBetween(
-            @Param("userId") Long userId,
-            @Param("walletId") Long walletId,
-            @Param("start") LocalDateTime start,
-            @Param("end") LocalDateTime end
-    );
-
-    // -------------------------------
-    // Duplicate transaction check
-    // -------------------------------
+    // Duplicate Transaction Check
     boolean existsByTransactionId(String transactionId);
 
-    Page<Transaction> findByUserIdAndWalletName(Long userId, String walletName, Pageable pageable);
 
+    // Extract Transaction of a user and walletName with pagination
     @Query("SELECT t FROM Transaction t WHERE t.userId = :userId AND t.walletName = :walletName")
     Page<Transaction> findTransactionsByUserAndWallet(
             @Param("userId") Long userId,

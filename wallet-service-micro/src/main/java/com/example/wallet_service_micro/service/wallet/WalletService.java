@@ -92,8 +92,10 @@ public class WalletService {
         double amount = request.getAmount();
         logger.debug("🔍 Fetching wallet for load operation | walletName={} | amount={}", walletName, amount);
 
+        // Fetch wallet once
         Wallet wallet = walletManagementService.getExistingWallet(user, walletName);
 
+        // Validation logs
         walletValidator.validateNotBlacklisted(wallet);
         walletValidator.validateAmount(amount, "Load");
         wallet.resetDailyIfNewDay();
@@ -101,48 +103,62 @@ public class WalletService {
 
         logger.info("✅ Validation passed for loadMoney | wallet={} | amount={}", walletName, amount);
 
-        return performLoadMoney(user, amount, transactionId, walletName);
+        return performLoadMoney(user, wallet, amount, transactionId);
     }
+
 
     @Transactional(propagation = Propagation.REQUIRES_NEW,
             isolation = Isolation.REPEATABLE_READ,
             rollbackFor = Exception.class)
-    public LoadMoneyResponse performLoadMoney(UserDTO user, double amount, String transactionId, String walletName) {
+    public LoadMoneyResponse performLoadMoney(UserDTO user, Wallet wallet, double amount, String transactionId) {
         logger.info("⚙️ Performing transactional wallet load | userId={} | walletName={} | amount={}",
-                user.getId(), walletName, amount);
+                user.getId(), wallet.getWalletName(), amount);
 
-        Wallet wallet = walletManagementService.getExistingWallet(user, walletName);
+        double projectedDailySpent = wallet.getDailySpent() + amount;
 
+        // If transaction exceeds daily limit, log and throw
+        if (projectedDailySpent > walletProperties.getDailyLimit()) {
+            double remainingLimit = walletProperties.getDailyLimit() - wallet.getDailySpent();
+            logger.warn("❌ Daily limit exceeded | walletName={} | currentSpent={} | attemptedAmount={} | remainingLimit={}",
+                    wallet.getWalletName(), wallet.getDailySpent(), amount, remainingLimit);
+            throw new IllegalArgumentException(
+                    "Transaction exceeds daily limit. You can only add " + remainingLimit + " more today.");
+        }
+
+        // Update wallet balance
         wallet.setBalance(wallet.getBalance() + amount);
-        wallet.setDailySpent(wallet.getDailySpent() + amount);
+        wallet.setDailySpent(projectedDailySpent);
 
-        if (wallet.getDailySpent() >= walletProperties.getDailyLimit())
+        // Freeze wallet if exactly reaching limit
+        if (wallet.getDailySpent() == walletProperties.getDailyLimit()) {
             wallet.setFrozen(true);
+            logger.warn("❄️ Wallet frozen due to reaching daily limit | walletName={} | dailySpent={}",
+                    wallet.getWalletName(), wallet.getDailySpent());
+        }
 
         walletRepository.saveAndFlush(wallet);
         logger.debug("💾 Wallet updated | newBalance={} | dailySpent={}", wallet.getBalance(), wallet.getDailySpent());
 
-        txnService.recordLoadTransaction(user, amount, transactionId, walletName);
+        // Record transaction
+        txnService.recordLoadTransaction(user, amount, transactionId, wallet.getWalletName());
         logger.info("🧾 Load transaction recorded | txnId={}", transactionId);
 
+        // Prepare response
         LoadMoneyResponse response = walletMapper.toLoadMoneyResponse(wallet);
-        response.setWalletName(walletName);
+        response.setWalletName(wallet.getWalletName());
         response.setRemainingDailyLimit(walletProperties.getDailyLimit() - wallet.getDailySpent());
-
-        if (wallet.getFrozen()) {
-            response.setMessage("Wallet Frozen due to daily limit hit");
-        } else {
-            response.setMessage("Wallet loaded successfully ✅");
-        }
+        response.setMessage(wallet.getFrozen()
+                ? "Wallet frozen as daily limit reached"
+                : "Wallet loaded successfully ✅");
 
         logger.info("✅ LoadMoney completed | userId={} | walletName={} | finalBalance={}",
-                user.getId(), walletName, wallet.getBalance());
+                user.getId(), wallet.getWalletName(), wallet.getBalance());
+
         return response;
     }
 
-    // --------------------------------------------------------------------
-    // ✅ TRANSFER TO ANOTHER USER
-    // --------------------------------------------------------------------
+
+
     public TransferResponse transferAmount(UserDTO sender, Long receiverId, Double amount, String transactionId,
                                            String senderWalletName, String authHeader) {
         logger.info("💸 Initiating transfer | senderId={} | receiverId={} | amount={} | txnId={}",
@@ -171,14 +187,13 @@ public class WalletService {
         walletValidator.validateBalance(senderWallet, amount);
         walletValidator.validateDailyLimit(senderWallet, amount);
 
-
         logger.debug("✅ Transfer validation passed | senderWallet={} | receiverWallet={}",
                 senderWalletName, receiverWallet.getWalletName());
 
         for (int attempt = 1; attempt <= 3; attempt++) {
             try {
                 logger.info("🚀 Performing transfer attempt #{}", attempt);
-                return performTransfer(sender, recipient, amount, transactionId, senderWalletName, "Default");
+                return performTransfer(sender, recipient, amount, transactionId, senderWallet, receiverWallet);
             } catch (ObjectOptimisticLockingFailureException e) {
                 logger.warn("⚠️ Optimistic locking conflict during transfer attempt #{}", attempt);
                 if (attempt == 3) throw e;
@@ -192,12 +207,14 @@ public class WalletService {
             isolation = Isolation.REPEATABLE_READ,
             rollbackFor = Exception.class)
     public TransferResponse performTransfer(UserDTO sender, UserDTO recipient, double amount, String transactionId,
-                                            String senderWalletName, String receiverWalletName) {
+                                            Wallet senderWallet, Wallet receiverWallet) {
         logger.info("🔄 Executing transactional transfer | senderId={} | receiverId={} | amount={}",
                 sender.getId(), recipient.getId(), amount);
 
-        Wallet senderWallet = walletManagementService.getExistingWallet(sender, senderWalletName);
-        Wallet receiverWallet = walletManagementService.getExistingWallet(recipient, receiverWalletName);
+        if (sender.getId().equals(recipient.getId())) {
+            logger.info("🔄 Redirecting to internal transfer | userId={} | wallet='{}'", sender.getId(), senderWallet.getWalletName());
+            throw new IllegalArgumentException("Use internal transfer API for transferring between your own wallets");
+        }
 
         senderWallet.setBalance(senderWallet.getBalance() - amount);
         senderWallet.setDailySpent(senderWallet.getDailySpent() + amount);
@@ -211,14 +228,14 @@ public class WalletService {
         walletRepository.saveAndFlush(receiverWallet);
 
         txnService.recordTransferTransactions(sender, recipient, amount, transactionId,
-                senderWalletName, receiverWalletName);
+                senderWallet.getWalletName(), receiverWallet.getWalletName());
 
         logger.info("✅ Transfer complete | senderBalance={} | receiverBalance={}",
                 senderWallet.getBalance(), receiverWallet.getBalance());
 
         TransferResponse response = walletMapper.toTransferResponse(senderWallet);
-        response.setSenderWalletName(senderWalletName);
-        response.setReceiverWalletName(receiverWalletName);
+        response.setSenderWalletName(senderWallet.getWalletName());
+        response.setReceiverWalletName(receiverWallet.getWalletName());
         response.setAmountTransferred(amount);
         response.setRemainingDailyLimit(walletProperties.getDailyLimit() - senderWallet.getDailySpent());
         response.setFrozen(senderWallet.getFrozen());
@@ -231,6 +248,7 @@ public class WalletService {
 
         return response;
     }
+
 
     // --------------------------------------------------------------------
     // ✅ INTERNAL TRANSFER (USER → USER)
@@ -310,16 +328,6 @@ public class WalletService {
                 .toList();
     }
 
-    public Page<TransactionDTO> getTransactionsByWallet(UserDTO user, String walletName, int page, int size) {
-        logger.info("📄 Fetching transactions | userId={} | walletName={} | page={} | size={}",
-                user.getId(), walletName, page, size);
-
-        Pageable pageable = PageRequest.of(page, size);
-        Page<Transaction> transactions =
-                transactionRepository.findTransactionsByUserAndWallet(user.getId(), walletName, pageable);
-        return transactions.map(transactionMapper::toDTO);
-    }
-
     private void sleep(long ms) {
         try { Thread.sleep(ms); }
         catch (InterruptedException e) { Thread.currentThread().interrupt(); }
@@ -329,103 +337,6 @@ public class WalletService {
         WalletBalanceResponse response = walletMapper.toBalanceResponse(wallet);
         response.setMessage("Balance fetched successfully ✅");
         return response;
-    }
-
-    public List<WalletBalanceResponse> getAllWalletsByUserId(Long userId) {
-        logger.info("📋 Admin fetching wallets for userId={}", userId);
-        List<Wallet> wallets = walletRepository.findByUserId(userId);
-        return wallets.stream()
-                .map(wallet -> {
-                    WalletBalanceResponse dto = walletMapper.toBalanceResponse(wallet);
-                    dto.setMessage("Wallet: " + wallet.getWalletName());
-                    return dto;
-                })
-                .toList();
-    }
-
-    public WalletBalanceResponse getWalletByUserIdAndWalletName(Long userId, String walletName) {
-        logger.info("🔍 Admin fetching wallet | userId={} | walletName={}", userId, walletName);
-        Wallet wallet = walletRepository.findByUserIdAndWalletName(userId, walletName)
-                .orElseThrow(() -> new IllegalArgumentException("Wallet '" + walletName + "' not found for userId=" + userId));
-        WalletBalanceResponse response = walletMapper.toBalanceResponse(wallet);
-        response.setMessage("Wallet fetched successfully ✅");
-        return response;
-    }
-
-    public Page<TransactionDTO> getTransactions(UserDTO user, int page, int size) {
-        logger.info("📜 Fetching paginated transactions | userId={} | page={} | size={}",
-                user.getId(), page, size);
-        Pageable pageable = PageRequest.of(page, size);
-        Page<Transaction> tx = transactionRepository.findByUserId(user.getId(), pageable);
-        return tx.map(transactionMapper::toDTO);
-    }
-
-    public void blacklistWalletByName(Long userId, String walletName, String authHeader) {
-        logger.warn("🚫 Blacklisting wallet | userId={} | walletName={}", userId, walletName);
-
-        Wallet wallet = walletRepository.findByUserIdAndWalletName(userId, walletName)
-                .orElseThrow(() -> new IllegalArgumentException("Wallet '" + walletName + "' not found for userId=" + userId));
-
-        wallet.setBlacklisted(true);
-        walletRepository.save(wallet);
-
-        boolean allBlacklisted = walletRepository.findByUserId(userId)
-                .stream()
-                .allMatch(Wallet::getBlacklisted);
-
-        if (allBlacklisted) {
-            userClient.blacklistUser(userId, authHeader);
-            logger.info("✅ All wallets for user {} are BLACKLISTED → User also BLACKLISTED", userId);
-        } else {
-            logger.info("⚠️ Wallet '{}' blacklisted, but user NOT blacklisted (other wallets active)", walletName);
-        }
-    }
-
-    public boolean areAllWalletsBlacklisted(Long userId) {
-        boolean result = walletRepository.findByUserId(userId)
-                .stream()
-                .allMatch(Wallet::getBlacklisted);
-        logger.debug("🧩 Check all wallets blacklisted | userId={} | result={}", userId, result);
-        return result;
-    }
-
-    @Transactional
-    public int unblacklistAllWallets(Long userId, String authHeader) {
-        logger.info("♻️ Unblocking all wallets | userId={}", userId);
-        List<Wallet> wallets = walletRepository.findByUserId(userId);
-        if (wallets.isEmpty()) {
-            logger.warn("⚠️ No wallets found for userId={}", userId);
-            return 0;
-        }
-
-        wallets.forEach(wallet -> wallet.setBlacklisted(false));
-        walletRepository.saveAll(wallets);
-        userClient.unblacklistUser(userId, authHeader);
-
-        logger.info("✅ All wallets unblocked for userId={}", userId);
-        return wallets.size();
-    }
-
-    public Page<TransactionDTO> getTransactionsByWalletName(Long userId, String walletName, int page, int size) {
-        logger.info("📄 Fetching transactions by wallet | userId={} | walletName={}", userId, walletName);
-        Wallet wallet = walletRepository.findByUserIdAndWalletName(userId, walletName)
-                .orElseThrow(() -> new IllegalArgumentException("Wallet not found: " + walletName));
-
-        return transactionRepository.findByWalletId(wallet.getId(), PageRequest.of(page, size))
-                .map(transactionMapper::toDTO);
-    }
-
-    public List<TransactionDTO> getUserTransactionsBetween(
-            Long userId, String walletName, LocalDateTime start, LocalDateTime end) {
-
-        List<Transaction> result =
-                transactionRepository.findByUserAndWalletNameAndTimestampBetween(
-                        userId, walletName, start, end
-                );
-
-        return result.stream()
-                .map(transactionMapper::toDTO)
-                .collect(Collectors.toList());
     }
 
 

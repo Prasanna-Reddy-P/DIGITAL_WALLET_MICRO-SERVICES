@@ -14,6 +14,8 @@ import com.example.wallet_service_micro.dto.wallet.WalletBalanceResponse;
 import com.example.wallet_service_micro.exception.auth.ForbiddenException;
 import com.example.wallet_service_micro.exception.auth.UnauthorizedException;
 import com.example.wallet_service_micro.exception.user.UserNotFoundException;
+import com.example.wallet_service_micro.service.transactions.WalletTransactionService;
+import com.example.wallet_service_micro.service.wallet.AdminWalletService;
 import com.example.wallet_service_micro.service.wallet.WalletService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -38,12 +40,14 @@ public class AdminController {
 
     private static final Logger logger = LoggerFactory.getLogger(AdminController.class);
 
-    private final WalletService walletService;
+    private final AdminWalletService adminWalletService;
     private final UserClient userClient;
+    private final WalletTransactionService walletTransactionService;
 
-    public AdminController(WalletService walletService, UserClient userClient) {
-        this.walletService = walletService;
+    public AdminController(AdminWalletService adminWalletService, UserClient userClient, WalletTransactionService walletTransactionService) {
+        this.adminWalletService = adminWalletService;
         this.userClient = userClient;
+        this.walletTransactionService = walletTransactionService;
     }
 
     // ------------------------ Admin Validation (Internal) ------------------------
@@ -94,7 +98,7 @@ public class AdminController {
             throw new UserNotFoundException("User not found with ID " + userId);
         }
 
-        Page<TransactionDTO> transactions = walletService.getTransactions(user, page, size);
+        Page<TransactionDTO> transactions = walletTransactionService.getTransactions(user, page, size);
 
         return ResponseEntity.ok(transactions);
     }
@@ -116,7 +120,7 @@ public class AdminController {
         Long userId = request.getUserId();
         userClient.getUserByIdInternal(userId);
 
-        WalletBalanceResponse response = walletService.getWalletByUserIdAndWalletName(userId, "Default");
+        WalletBalanceResponse response = adminWalletService.getWalletByUserIdAndWalletName(userId, "Default");
         response.setMessage("Balance fetched successfully for userId=" + userId);
 
         return ResponseEntity.ok(response);
@@ -138,7 +142,7 @@ public class AdminController {
         Long userId = request.getUserId();
         userClient.getUserByIdInternal(userId);
 
-        List<WalletBalanceResponse> wallets = walletService.getAllWalletsByUserId(userId);
+        List<WalletBalanceResponse> wallets = adminWalletService.getAllWalletsByUserId(userId);
 
         return ResponseEntity.ok(wallets);
     }
@@ -160,7 +164,7 @@ public class AdminController {
         String walletName = request.getWalletName();
 
         userClient.getUserByIdInternal(userId);
-        WalletBalanceResponse wallet = walletService.getWalletByUserIdAndWalletName(userId, walletName);
+        WalletBalanceResponse wallet = adminWalletService.getWalletByUserIdAndWalletName(userId, walletName);
         wallet.setMessage("Balance fetched successfully for wallet '" + walletName + "'");
 
         return ResponseEntity.ok(wallet);
@@ -185,7 +189,7 @@ public class AdminController {
         userClient.getUserByIdInternal(userId);
 
         Page<TransactionDTO> transactions =
-                walletService.getTransactionsByWalletName(userId, walletName, request.getPage(), request.getSize());
+                walletTransactionService.getTransactionsByWalletName(userId, walletName, request.getPage(), request.getSize());
 
         return ResponseEntity.ok(transactions);
     }
@@ -207,9 +211,9 @@ public class AdminController {
         String walletName = request.getWalletName();
 
         userClient.getUserByIdInternal(userId);
-        walletService.blacklistWalletByName(userId, walletName, authHeader);
+        adminWalletService.blacklistWalletByName(userId, walletName, authHeader);
 
-        boolean allBlacklisted = walletService.areAllWalletsBlacklisted(userId);
+        boolean allBlacklisted = adminWalletService.areAllWalletsBlacklisted(userId);
 
         WalletBlacklistResponse response = new WalletBlacklistResponse(
                 userId,
@@ -240,7 +244,7 @@ public class AdminController {
         Long userId = request.getUserId();
         userClient.getUserByIdInternal(userId);
 
-        int walletCount = walletService.unblacklistAllWallets(userId, authHeader);
+        int walletCount = adminWalletService.unblacklistAllWallets(userId, authHeader);
 
         walletUnblacklistResponse response = new walletUnblacklistResponse(
                 userId,
@@ -276,7 +280,7 @@ public class AdminController {
 
         // Fetch transactions only for the given walletName
         List<TransactionDTO> transactions =
-                walletService.getUserTransactionsBetween(userId, walletName, start, end);
+                walletTransactionService.getUserTransactionsBetween(userId, walletName, start, end);
 
         return ResponseEntity.ok(transactions);
     }

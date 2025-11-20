@@ -52,81 +52,6 @@ class TransactionRepositoryTest {
     }
 
     @Test
-    void testFindByUserIdAndWalletId() {
-        Long userId = 1L;
-        Long walletId = 2L;
-        Pageable pageable = PageRequest.of(0, 10);
-
-        log.info("Testing findByUserIdAndWalletId: userId={}, walletId={}", userId, walletId);
-
-        Page<Transaction> mockPage = new PageImpl<>(List.of(new Transaction()));
-
-        when(transactionRepository.findByUserIdAndWalletId(userId, walletId, pageable))
-                .thenReturn(mockPage);
-        log.info("Mocked findByUserIdAndWalletId()");
-
-        Page<Transaction> result =
-                transactionRepository.findByUserIdAndWalletId(userId, walletId, pageable);
-        log.info("Executed method, result size = {}", result.getContent().size());
-
-        assertThat(result).isNotNull();
-        log.info("Assertion passed");
-
-        verify(transactionRepository).findByUserIdAndWalletId(userId, walletId, pageable);
-        log.info("Verified repository call");
-    }
-
-    @Test
-    void testFindByUserAndTimestampBetween() {
-        Long userId = 5L;
-        LocalDateTime start = LocalDateTime.now().minusDays(3);
-        LocalDateTime end = LocalDateTime.now();
-
-        log.info("Testing findByUserAndTimestampBetween for userId={}, between {} and {}", userId, start, end);
-
-        List<Transaction> transactions = List.of(new Transaction());
-
-        when(transactionRepository.findByUserAndTimestampBetween(userId, start, end))
-                .thenReturn(transactions);
-        log.info("Mocked findByUserAndTimestampBetween()");
-
-        List<Transaction> result =
-                transactionRepository.findByUserAndTimestampBetween(userId, start, end);
-        log.info("Executed method, result count={}", result.size());
-
-        assertThat(result).hasSize(1);
-        log.info("Assertion successful");
-
-        verify(transactionRepository).findByUserAndTimestampBetween(userId, start, end);
-        log.info("Verified repository call");
-    }
-
-    @Test
-    void testFindByUserAndWalletAndTimestampBetween() {
-        Long userId = 5L;
-        Long walletId = 9L;
-        LocalDateTime start = LocalDateTime.now().minusDays(3);
-        LocalDateTime end = LocalDateTime.now();
-
-        log.info("Testing findByUserAndWalletAndTimestampBetween for userId={}, walletId={}", userId, walletId);
-
-        when(transactionRepository.findByUserAndWalletAndTimestampBetween(
-                userId, walletId, start, end
-        )).thenReturn(List.of(new Transaction()));
-        log.info("Mocked findByUserAndWalletAndTimestampBetween()");
-
-        List<Transaction> result =
-                transactionRepository.findByUserAndWalletAndTimestampBetween(userId, walletId, start, end);
-        log.info("Executed method, result size={}", result.size());
-
-        assertThat(result).hasSize(1);
-        log.info("Assertions OK");
-
-        verify(transactionRepository).findByUserAndWalletAndTimestampBetween(userId, walletId, start, end);
-        log.info("Verified method call");
-    }
-
-    @Test
     void testExistsByTransactionId() {
         String transactionId = "TX1234";
 
@@ -154,18 +79,18 @@ class TransactionRepositoryTest {
 
         log.info("Testing findByUserIdAndWalletName for userId={}, wallet={}", userId, walletName);
 
-        when(transactionRepository.findByUserIdAndWalletName(userId, walletName, pageable))
+        when(transactionRepository.findTransactionsByUserAndWallet(userId, walletName, pageable))
                 .thenReturn(new PageImpl<>(List.of(new Transaction())));
         log.info("Mocked findByUserIdAndWalletName()");
 
         Page<Transaction> result =
-                transactionRepository.findByUserIdAndWalletName(userId, walletName, pageable);
+                transactionRepository.findTransactionsByUserAndWallet(userId, walletName, pageable);
         log.info("Executed method, result count={}", result.getContent().size());
 
         assertThat(result.getContent()).hasSize(1);
         log.info("Assertions OK");
 
-        verify(transactionRepository).findByUserIdAndWalletName(userId, walletName, pageable);
+        verify(transactionRepository).findTransactionsByUserAndWallet(userId, walletName, pageable);
         log.info("Verified call");
     }
 
