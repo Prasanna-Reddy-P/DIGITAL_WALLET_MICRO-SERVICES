@@ -1,4 +1,4 @@
-package com.example.wallet_service_micro.dto;
+package com.example.wallet_service_micro.dto.transactions;
 
 import java.time.LocalDateTime;
 

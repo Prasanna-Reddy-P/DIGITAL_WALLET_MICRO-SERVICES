@@ -3,7 +3,7 @@ package com.example.wallet_service_micro.controller.admin;
 import com.example.wallet_service_micro.client.user.UserClient;
 import com.example.wallet_service_micro.dto.BlackList.WalletBlacklistResponse;
 import com.example.wallet_service_micro.dto.BlackList.walletUnblacklistResponse;
-import com.example.wallet_service_micro.dto.UserTransactionRangeRequest;
+import com.example.wallet_service_micro.dto.transactions.UserTransactionRangeRequest;
 import com.example.wallet_service_micro.dto.userRequest.UserIdRequest;
 import com.example.wallet_service_micro.dto.userRequest.UserTransactionRequest;
 import com.example.wallet_service_micro.dto.walletRequest.WalletNameRequest;
@@ -20,7 +20,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -1,4 +1,4 @@
-package com.example.wallet_service_micro.config;
+package com.example.wallet_service_micro.config.swagger;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
