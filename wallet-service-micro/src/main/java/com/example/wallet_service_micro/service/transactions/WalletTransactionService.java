@@ -6,7 +6,6 @@ import com.example.wallet_service_micro.mapper.transaction.TransactionMapper;
 import com.example.wallet_service_micro.model.transaction.Transaction;
 import com.example.wallet_service_micro.model.wallet.Wallet;
 import com.example.wallet_service_micro.repository.transaction.TransactionRepository;
-import com.example.wallet_service_micro.repository.wallet.WalletRepository;
 import com.example.wallet_service_micro.service.factory.WalletManagementService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,16 +24,13 @@ public class WalletTransactionService {
     private static final Logger logger = LoggerFactory.getLogger(WalletTransactionService.class);
 
     private final TransactionRepository transactionRepository;
-    private final WalletRepository walletRepository;
     private final TransactionMapper transactionMapper;
     private final WalletManagementService walletManagementService;
 
     public WalletTransactionService(TransactionRepository transactionRepository,
-                                    WalletRepository walletRepository,
                                     TransactionMapper transactionMapper,
                                     WalletManagementService walletManagementService) {
         this.transactionRepository = transactionRepository;
-        this.walletRepository = walletRepository;
         this.transactionMapper = transactionMapper;
         this.walletManagementService = walletManagementService;
     }

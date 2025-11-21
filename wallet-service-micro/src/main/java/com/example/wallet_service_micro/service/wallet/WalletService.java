@@ -5,16 +5,12 @@ import com.example.wallet_service_micro.config.properties.WalletProperties;
 import com.example.wallet_service_micro.dto.loadMoney.LoadMoneyRequest;
 import com.example.wallet_service_micro.dto.loadMoney.LoadMoneyResponse;
 import com.example.wallet_service_micro.dto.selfTransfer.UserInternalTransferResponse;
-import com.example.wallet_service_micro.dto.transactions.TransactionDTO;
 import com.example.wallet_service_micro.dto.transferMoney.TransferResponse;
 import com.example.wallet_service_micro.dto.user.UserDTO;
 import com.example.wallet_service_micro.dto.wallet.WalletBalanceResponse;
 import com.example.wallet_service_micro.exception.user.UserNotFoundException;
-import com.example.wallet_service_micro.mapper.transaction.TransactionMapper;
 import com.example.wallet_service_micro.mapper.wallet.WalletMapper;
-import com.example.wallet_service_micro.model.transaction.Transaction;
 import com.example.wallet_service_micro.model.wallet.Wallet;
-import com.example.wallet_service_micro.repository.transaction.TransactionRepository;
 import com.example.wallet_service_micro.repository.wallet.WalletRepository;
 import com.example.wallet_service_micro.service.factory.WalletManagementService;
 import com.example.wallet_service_micro.service.transactions.WalletTransactionService;
@@ -22,20 +18,12 @@ import com.example.wallet_service_micro.service.validator.WalletValidator;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class WalletService {
@@ -43,21 +31,15 @@ public class WalletService {
     private static final Logger logger = LoggerFactory.getLogger(WalletService.class);
 
     private final WalletRepository walletRepository;
-    private final TransactionRepository transactionRepository;
-
     private final WalletProperties walletProperties;
-    private final TransactionMapper transactionMapper;
     private final WalletMapper walletMapper;
-
     private final WalletValidator walletValidator;
     private final WalletTransactionService txnService;
     private final WalletManagementService walletManagementService;
     private final UserClient userClient;
 
     public WalletService(WalletRepository walletRepository,
-                         TransactionRepository transactionRepository,
                          WalletProperties walletProperties,
-                         TransactionMapper transactionMapper,
                          WalletMapper walletMapper,
                          WalletValidator walletValidator,
                          WalletTransactionService txnService,
@@ -65,9 +47,7 @@ public class WalletService {
                          UserClient userClient) {
 
         this.walletRepository = walletRepository;
-        this.transactionRepository = transactionRepository;
         this.walletProperties = walletProperties;
-        this.transactionMapper = transactionMapper;
         this.walletMapper = walletMapper;
         this.walletValidator = walletValidator;
         this.txnService = txnService;

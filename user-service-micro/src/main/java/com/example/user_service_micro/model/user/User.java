@@ -88,8 +88,6 @@ public class User {
         this.password = password;
     }
 
-    public Integer getAge() { return age; }// getter
-
     public void setAge(Integer age) { this.age = age; }  // setter
 
     public Boolean getBlacklisted() {
